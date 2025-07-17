@@ -12,6 +12,13 @@ interface ChatwootReportResponse {
     timestamp: number;
 }
 
+interface DatosDiarios {
+    fecha: string; // Formato YYYY-MM-DD
+    timestamp: number;
+    mensajesEnviados: number;
+    mensajesRecibidos: number;
+}
+
 interface MetricasResponse {
     // Métricas históricas (desde 2024-12-12)
     totalMensajesEnviadosHistoricos: number;
@@ -29,21 +36,31 @@ interface MetricasResponse {
     // Métricas de última semana
     mensajesEnviadosUltimaSemana: number;
     mensajesRecibidosUltimaSemana: number;
+
+    // Datos diarios de la última semana
+    datosDiariosUltimaSemana: DatosDiarios[];
+
+    // Información del cliente
+    cliente: {
+        plan: string;
+        mensajesRestantes: number;
+        nombre: string;
+    };
 }
 
 class ChatwootAPI {
     private baseUrl: string;
     private apiToken: string;
-    private accountId: number;
+    private email: string;
 
-    constructor(baseUrl: string, apiToken: string, accountId: number = 1) {
+    constructor(baseUrl: string, apiToken: string, email: string) {
         this.baseUrl = baseUrl;
         this.apiToken = apiToken;
-        this.accountId = accountId;
+        this.email = email;
     }
 
     private async makeRequest(endpoint: string): Promise<any> {
-        const url = endpoint !== '/contacts' ? `${this.baseUrl}/api/v2/accounts/${this.accountId}${endpoint}` : `${this.baseUrl}/api/v1/accounts/${this.accountId}/${endpoint}`;
+        const url = endpoint !== '/contacts' ? `${this.baseUrl}${endpoint}` : `${this.baseUrl.replace("v2", "v1")}${endpoint}`;
 
         const response = await fetch(url, {
             headers: {
@@ -85,6 +102,70 @@ class ChatwootAPI {
 
             // Si no hay meta, contar los contactos directamente
             return response.payload ? response.payload.length : 0;
+        } catch (error) {
+            console.error('Error obteniendo contactos:', error);
+            return 0;
+        }
+    }
+
+    private formatearFecha(timestamp: number): string {
+        return new Date(timestamp * 1000).toISOString().split('T')[0];
+    }
+
+    private combinarDatosDiarios(
+        enviados: ChatwootReportResponse[],
+        recibidos: ChatwootReportResponse[]
+    ): DatosDiarios[] {
+        // Crear un mapa para combinar los datos por timestamp
+        const datosPorTimestamp = new Map<number, DatosDiarios>();
+
+        // Procesar mensajes enviados
+        enviados.forEach(item => {
+            const fecha = this.formatearFecha(item.timestamp);
+            datosPorTimestamp.set(item.timestamp, {
+                fecha,
+                timestamp: item.timestamp,
+                mensajesEnviados: item.value,
+                mensajesRecibidos: 0
+            });
+        });
+
+        // Procesar mensajes recibidos
+        recibidos.forEach(item => {
+            const fecha = this.formatearFecha(item.timestamp);
+            const existente = datosPorTimestamp.get(item.timestamp);
+
+            if (existente) {
+                existente.mensajesRecibidos = item.value;
+            } else {
+                datosPorTimestamp.set(item.timestamp, {
+                    fecha,
+                    timestamp: item.timestamp,
+                    mensajesEnviados: 0,
+                    mensajesRecibidos: item.value
+                });
+            }
+        });
+
+        // Convertir a array y ordenar por timestamp
+        return Array.from(datosPorTimestamp.values())
+            .sort((a, b) => a.timestamp - b.timestamp);
+    }
+
+    private async obtenerPlanMensajesNombre(): Promise<any> {
+        try {
+            const { data, error } = await supabase.from('waichatt_clientes').select('nombre_completo,cantidad_mensajes,id_planes').eq('email', this.email).single();
+
+            if (error) {
+                console.error('Error obteniendo plan y mensajes:', error);
+                return null;
+            }
+
+            return {
+                plan: data.id_planes,
+                messagesRemaining: data.cantidad_mensajes,
+                nombre: data.nombre_completo,
+            }
         } catch (error) {
             console.error('Error obteniendo contactos:', error);
             return 0;
@@ -139,6 +220,9 @@ class ChatwootAPI {
                 // Métricas de última semana
                 mensajesEnviadosUltimaSemana,
                 mensajesRecibidosUltimaSemana,
+
+                // Plan y mensajes restantes
+                planMensajesNombre
             ] = await Promise.all([
                 // Históricos
                 this.obtenerReporte('outgoing_messages_count', unixInicioHistorico, unixAhora),
@@ -156,6 +240,9 @@ class ChatwootAPI {
                 // Última semana
                 this.obtenerReporte('outgoing_messages_count', unixUnaSemanaAtras, unixAhora),
                 this.obtenerReporte('incoming_messages_count', unixUnaSemanaAtras, unixAhora),
+
+                //obtener plan y mensajes restantes y nombres
+                this.obtenerPlanMensajesNombre()
             ]);
 
             return {
@@ -175,6 +262,16 @@ class ChatwootAPI {
                 // Métricas de última semana
                 mensajesEnviadosUltimaSemana: this.sumarValoresArray(mensajesEnviadosUltimaSemana),
                 mensajesRecibidosUltimaSemana: this.sumarValoresArray(mensajesRecibidosUltimaSemana),
+
+                // Datos diarios de la última semana
+                datosDiariosUltimaSemana: this.combinarDatosDiarios(mensajesEnviadosUltimaSemana, mensajesRecibidosUltimaSemana),
+
+                // Información del cliente
+                cliente: {
+                    plan: planMensajesNombre.plan === 1 ? 'Plan Inicial' : planMensajesNombre.plan == 2 ? 'Plan Pro' : 'Plan Empresarial',
+                    mensajesRestantes: planMensajesNombre.messagesRemaining,
+                    nombre: planMensajesNombre.nombre
+                }
             };
         } catch (error) {
             console.error('Error obteniendo métricas:', error);
@@ -189,9 +286,12 @@ export async function obtenerMetricas(): Promise<MetricasResponse> {
     if (!session) {
         throw new Error('No hay sesión activa');
     }
+    if (!session.user.email) {
+        throw new Error('El usuario no tiene un email asociado');
+    }
 
-    const { data, error } = await supabase.rpc('get_url_and_access_2', {
-        id_user: session.user.id
+    const { data, error } = await supabase.rpc('get_urlbase_and_accesstoken', {
+        email_arg: session.user.email
     });
     if (error) {
         console.error('[Supabase error]', error);
@@ -205,6 +305,12 @@ export async function obtenerMetricas(): Promise<MetricasResponse> {
             mensajesRecibidosUltimoDia: 0,
             mensajesEnviadosUltimaSemana: 0,
             mensajesRecibidosUltimaSemana: 0,
+            datosDiariosUltimaSemana: [],
+            cliente: {
+                plan: '',
+                mensajesRestantes: 0,
+                nombre: ''
+            }
         };
     }
     if (!data || data.length === 0) {
@@ -219,9 +325,15 @@ export async function obtenerMetricas(): Promise<MetricasResponse> {
             mensajesRecibidosUltimoDia: 0,
             mensajesEnviadosUltimaSemana: 0,
             mensajesRecibidosUltimaSemana: 0,
+            datosDiariosUltimaSemana: [],
+            cliente: {
+                plan: '',
+                mensajesRestantes: 0,
+                nombre: ''
+            }
         };
     }
-    const api = new ChatwootAPI(data.url_base, data.api_access_token, 1);
+    const api = new ChatwootAPI(data[0].url_base, data[0].api_access_token, session.user.email);
     return await api.obtenerMetricas();
 }
 

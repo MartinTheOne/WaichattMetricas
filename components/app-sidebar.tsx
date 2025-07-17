@@ -1,6 +1,6 @@
 "use client"
 
-import { MessageSquare, BarChart3, Settings, CreditCard, LogOut } from "lucide-react"
+import { MessageSquare, BarChart3, CreditCard, LogOut } from "lucide-react"
 import { signOut } from "next-auth/react"
 import {
   Sidebar,
@@ -23,11 +23,6 @@ const items = [
     title: "Dashboard",
     url: "/dashboard",
     icon: BarChart3,
-  },
-  {
-    title: "Configuración",
-    url: "/configuracion",
-    icon: Settings,
   },
   {
     title: "Pagos",

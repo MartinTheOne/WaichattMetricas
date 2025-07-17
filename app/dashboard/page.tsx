@@ -10,9 +10,9 @@ export default async function Dashboard() {
 
   // Map metricas (MetricasResponse) to Metrics type
   const metrics: Metrics = {
-    plan: 'Plan Pro',
-    messagesRemaining: 20500,
-    totalMessages: 5000,
+    plan: metricas.cliente.plan,
+    messagesRemaining: metricas.cliente.mensajesRestantes,
+    totalMessages: metricas.cliente.plan==='Plan Inicial' ? 1000 : metricas.cliente.plan==='Plan Pro' ? 5000 : 14000,
     messagesSent: metricas.totalMensajesEnviadosHistoricos,
     messagesReceived: metricas.totalMensajesRecibidosHistoricos,
     totalContacts: metricas.totalContactos,
@@ -28,6 +28,12 @@ export default async function Dashboard() {
       sent: metricas.mensajesEnviadosUltimaSemana,
       received: metricas.mensajesRecibidosUltimaSemana,
     },
+    dailyData: metricas.datosDiariosUltimaSemana.map(dia => ({
+      fecha: dia.fecha,
+      timestamp: dia.timestamp,
+      mensajesEnviados: dia.mensajesEnviados,
+      mensajesRecibidos: dia.mensajesRecibidos,
+    })),
   };
 
   return <DashboardPage metrics={metrics} />;

@@ -4,29 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MessageSquare, Send, MessageCircle, Users, TrendingUp, Clock } from "lucide-react"
 import { MessagesChart } from "@/components/messages-chart"
 import { PlanUsageChart } from "@/components/plan-usage-chart"
-import { useSession } from "next-auth/react"
 import { Metrics } from "@/types/Imetric"
 // Datos simulados
 
 interface DashboardPageProps {
     metrics: Metrics;
 }
-const metricsaa = {
-  plan: "Plan Pro",
-  messagesRemaining: 2500,
-  totalMessages: 5000,
-  messagesSent: 1250,
-  messagesReceived: 980,
-  totalContacts: 450,
-  lastHour: { sent: 45, received: 32 },
-  lastDay: { sent: 320, received: 280 },
-  lastWeek: { sent: 1250, received: 980 },
-}
 
 export default function DashboardPage({metrics}:DashboardPageProps) {
 
-  const { data: session } = useSession()
-  console.log("Session data:", session)
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
       <div className="flex items-center justify-between">
@@ -148,7 +134,7 @@ export default function DashboardPage({metrics}:DashboardPageProps) {
             <CardDescription>Mensajes enviados y recibidos en los últimos 7 días</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <MessagesChart />
+            <MessagesChart dailyData={metrics.dailyData} />
           </CardContent>
         </Card>
 
@@ -158,7 +144,7 @@ export default function DashboardPage({metrics}:DashboardPageProps) {
             <CardDescription>Mensajes utilizados vs disponibles</CardDescription>
           </CardHeader>
           <CardContent>
-            <PlanUsageChart used={metrics.messagesSent + metrics.messagesReceived} total={metrics.totalMessages} />
+            <PlanUsageChart used={metrics.messagesRemaining} total={metrics.totalMessages} />
           </CardContent>
         </Card>
       </div>

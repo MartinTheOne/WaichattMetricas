@@ -49,7 +49,7 @@ export function AppHeader() {
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-white text-sm">
-              {session.user?.name?.charAt(0) || session.user?.email?.charAt(0) || "U"}
+              {session.user?.name?.charAt(0) || session.user?.email?.charAt(0).toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
           <div className="hidden sm:block">

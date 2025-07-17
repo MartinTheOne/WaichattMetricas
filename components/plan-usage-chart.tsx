@@ -12,7 +12,7 @@ export function PlanUsageChart({ used, total }: PlanUsageChartProps) {
 
   const data = [
     { name: "Utilizados", value: used, color: "#268656" },
-    { name: "Disponibles", value: remaining, color: "#a7f3d0" },
+    { name: "Disponibles", value: remaining, color: "#a7f3d9" },
   ]
 
   return (

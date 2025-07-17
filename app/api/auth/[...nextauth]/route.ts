@@ -22,13 +22,13 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        
-        const user=await getUserByEmail(credentials?.email ?? '', credentials?.password ?? '')
-        console.log("user", user)
+
+        const user = await getUserByEmail(credentials?.email ?? '', credentials?.password ?? '')
         if (user) {
           return {
             id: user.id,
-            email: user.email
+            email: user.email,
+            name: (user as any).name || ""
           }
         }
         return null
@@ -49,10 +49,10 @@ const handler = NextAuth({
       return token
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string
+      if (token && session.user) {
+        session.user.id = token.id as string;
       }
-      return session
+      return session;
     },
   },
 })

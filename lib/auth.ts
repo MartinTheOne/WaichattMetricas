@@ -4,7 +4,7 @@ import {compare} from 'bcryptjs';
 interface User {
   id: string;
   email: string;
-  password: string;
+  name: string ;
 }
 
 const supabase = createClient(
@@ -13,9 +13,7 @@ const supabase = createClient(
 );
 
 export async function getUserByEmail(email: string, pass: string): Promise<User | null> {
-  const { data, error } = await supabase.rpc('get_usuario_por_email', {
-    email_arg: email
-  });
+  const { data, error } = await supabase.from('waichatt_usuarios').select('*').eq('email', email).limit(1);
 
   if (error) {
     console.error('[Supabase error]', error);
@@ -26,14 +24,13 @@ export async function getUserByEmail(email: string, pass: string): Promise<User 
     return null;
   }
 
+  console.log(data)
   const user:User = data[0];
-  console.log(user.password)
 
-  const isValid = await compare(pass, user.password);
-  console.log("isValid", isValid);
+  const isValid = await compare(pass, (user as any).password);
   if (!isValid) {
     return null;
   }
-  
-  return { id: user.id, email: user.email, password: '' };
+
+  return { id: String((user as any).id_cliente), email: user.email, name: user.name };
 }
