@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
-import { signIn } from "next-auth/react"
+import { signIn, getSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +12,7 @@ import { MessageSquare, Loader2 } from "lucide-react"
 import { useSession } from "next-auth/react"
 
 export default function LoginPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -21,12 +20,25 @@ export default function LoginPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (session) {
+    if (status === "authenticated" && session) {
       router.push("/dashboard")
     }
-  }, [session, router])
+  }, [session, status, router])
 
-  if (session) {
+  // Mostrar loading mientras NextAuth se inicializa
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Waichatt</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Si ya está autenticado, mostrar mensaje de redirección
+  if (status === "authenticated") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
         <div className="text-center">
@@ -51,12 +63,16 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError("Credenciales inválidas")
-      } else {
-        router.push("/dashboard")
+        setIsLoading(false)
+      } else if (result?.ok) {
+        // Esperar a que la sesión se actualice antes de redirigir
+        const updatedSession = await getSession()
+        if (updatedSession) {
+          router.push("/dashboard")
+        }
       }
     } catch (error) {
       setError("Error al iniciar sesión")
-    } finally {
       setIsLoading(false)
     }
   }
@@ -84,6 +100,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -95,6 +112,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             {error && <div className="text-red-600 text-sm text-center">{error}</div>}

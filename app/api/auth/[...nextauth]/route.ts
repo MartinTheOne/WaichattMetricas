@@ -1,5 +1,17 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { getUserByEmail } from "@/lib/auth"
+import { Session } from "next-auth"
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id?: string
+      name?: string | null
+      email?: string | null
+    }
+  }
+}
 
 const handler = NextAuth({
   providers: [
@@ -10,12 +22,13 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // En producción, aquí validarías contra tu base de datos
-        if (credentials?.email === "admin@waichatt.com" && credentials?.password === "admin123") {
+        
+        const user=await getUserByEmail(credentials?.email ?? '', credentials?.password ?? '')
+        console.log("user", user)
+        if (user) {
           return {
-            id: "1",
-            email: "admin@waichatt.com",
-            name: "Admin Waichatt",
+            id: user.id,
+            email: user.email
           }
         }
         return null
