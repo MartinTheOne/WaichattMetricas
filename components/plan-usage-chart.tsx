@@ -11,8 +11,8 @@ export function PlanUsageChart({ used, total }: PlanUsageChartProps) {
   const remaining = total - used
 
   const data = [
-    { name: "Utilizados", value: used, color: "#268656" },
-    { name: "Disponibles", value: remaining, color: "#a7f3d9" },
+    { name: "Disponibles", value: used, color: "#a7f3d9" },
+    { name: "Utilizados", value: remaining, color: "#268656" },
   ]
 
   return (

@@ -290,9 +290,7 @@ export async function obtenerMetricas(): Promise<MetricasResponse> {
         throw new Error('El usuario no tiene un email asociado');
     }
 
-    const { data, error } = await supabase.rpc('get_urlbase_and_accesstoken', {
-        email_arg: session.user.email
-    });
+    const { data, error } = await supabase.from('waichatt_usuarios').select('api_access_token,url_base').eq('email', session.user.email).limit(1);
     if (error) {
         console.error('[Supabase error]', error);
         return {

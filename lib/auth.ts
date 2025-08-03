@@ -1,36 +1,38 @@
-import { createClient } from '@supabase/supabase-js';
-import {compare} from 'bcryptjs';
+// /lib/auth.ts
+import type { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { getUserByEmail } from "./getUserByEmail"; // tu función de BD
 
-interface User {
-  id: string;
-  email: string;
-  name: string ;
-}
+export const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const user = await getUserByEmail(
+          credentials?.email ?? "",
+          credentials?.password ?? ""
+        );
+        if (!user) return null;
 
-const supabase = createClient(
-  process.env.DATABASE_URL ?? '',
-  process.env.PUBLIC_ANON_KEY ?? ''
-);
-
-export async function getUserByEmail(email: string, pass: string): Promise<User | null> {
-  const { data, error } = await supabase.from('waichatt_usuarios').select('*').eq('email', email).limit(1);
-
-  if (error) {
-    console.error('[Supabase error]', error);
-    return null;
-  }
-
-  if (!data || data.length === 0) {
-    return null;
-  }
-
-  console.log(data)
-  const user:User = data[0];
-
-  const isValid = await compare(pass, (user as any).password);
-  if (!isValid) {
-    return null;
-  }
-
-  return { id: String((user as any).id_cliente), email: user.email, name: user.name };
-}
+        return { id: user.id, email: user.email, name: user.name ?? "" };
+      },
+    }),
+  ],
+  pages: { signIn: "/login" },
+  session: { strategy: "jwt" },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) token.id = user.id;
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) (session.user as any).id = token.id as string;
+      return session;
+    },
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+};

@@ -8,7 +8,7 @@ import { ConditionalLayout } from "@/components/conditional-layout"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Waichatt - Automatización de WhatsApp",
+  title: "Waichatt Metricas",
   description: "Plataforma de automatización de WhatsApp para empresas",
 }
 
