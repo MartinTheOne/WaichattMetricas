@@ -13,7 +13,7 @@ interface User {
   id: string;
   email: string;
   name: string;
-  name_role: string;
+  rol: string;
 }
 const supabase = createClient(
   process.env.DATABASE_URL ?? '',
@@ -40,17 +40,15 @@ export async function getUserByEmail(email: string, pass: string): Promise<User 
   }
   const rol=await getRole(user.rol);
 
-  console.log(rol)
-
   if(!rol) {
     return null;
   }
 
-  return { id: String(user.id_cliente), email: user.email, name: user.name,name_role: rol };
+  return { id: String(user.id_cliente), email: user.email, name: user.name,rol: rol };
 }
 
 async function getRole(id_rol: number):Promise<string | null> {
-  const {data,error}= await supabase.rpc('get_rol', { id_rol });
+  const {data,error}= await supabase.rpc('get_role', { id_rol });
 
   if( error) {
     console.error('[Supabase error]', error);
@@ -59,5 +57,5 @@ async function getRole(id_rol: number):Promise<string | null> {
   if (!data || data.length === 0) {
     return null;
   }
-  return data[0];
+  return data[0].rol ?? null;
 }

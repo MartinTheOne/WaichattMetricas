@@ -13,8 +13,8 @@ interface ConditionalLayoutProps {
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname()
 
-  // Páginas que no necesitan sidebar (páginas públicas)
-  const publicPages = ["/dashboard", "/pagos"]
+  // Páginas que  necesitan sidebar
+  const publicPages = ["/dashboard", "/pagos", "/admin/usuarios", "/admin/pagos"]
   const isPublicPage = publicPages.includes(pathname)
 
   // Si es una página pública o el usuario no está autenticado, mostrar sin sidebar

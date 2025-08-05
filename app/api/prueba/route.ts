@@ -6,34 +6,32 @@ const supabase = createClient(
     process.env.DATABASE_URL ?? '',
     process.env.PUBLIC_ANON_KEY ?? ''
 );
-export async function GET(req:Request) {
+export async function GET(req: Request) {
     try {
 
-        const { data, error } = await supabase
-            .rpc('get_rol', {
-                id_rol:1,
+        let { data, error } = await supabase
+            .rpc('get_role', {
+                id_rol:2
             })
-        if (error) {
-            console.error('[Supabase error]', error);
-            //return new Response(error.message, { status: 500 });
-        }
-        console.log(data)
-        return new Response(JSON.stringify({data}), { status: 200 });
+        if (error) console.error(error)
+        else console.log(data)
+
+        return new Response(JSON.stringify({ data }), { status: 200 });
 
 
         const { searchParams } = new URL(req.url);
         const passurl = searchParams.get('pass');
-        const pass=await hash(passurl||"", 10);
+        const pass = await hash(passurl || "", 10);
 
 
         //const { data, error } = await supabase
         //    .rpc('get_usuario_por_email_2', {
-       //         email_arg:'gonzalezmartinnatanael@gmail.com',
+        //         email_arg:'gonzalezmartinnatanael@gmail.com',
         //    })
         //if (error) {
-            console.error('[Supabase error]', error);
-            //return new Response(error.message, { status: 500 });
-      //  }
+        console.error('[Supabase error]', error);
+        //return new Response(error.message, { status: 500 });
+        //  }
         if (!data || data.length === 0) {
             return new Response('No se encontró el usuario', { status: 404 });
         }

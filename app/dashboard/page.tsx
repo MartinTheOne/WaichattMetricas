@@ -9,6 +9,7 @@ import { PlanUsageChart } from "@/components/plan-usage-chart"
 import { Metrics } from "@/types/Imetric"
 import { useState, useEffect } from "react"
 
+
 // Componente Skeleton para las tarjetas principales
 const MainMetricCardSkeleton = () => (
   <Card>
@@ -61,8 +62,7 @@ const ChartCardSkeleton = ({ className }: { className?: string }) => (
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [error, setError] = useState<string | null>(null)
   useEffect(() => {
     const cargarMetricas = async () => {
       if (metrics) return; // Evitar recargar si ya tenemos métricas

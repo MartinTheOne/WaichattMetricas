@@ -1,7 +1,9 @@
 "use client"
 
-import { MessageSquare, BarChart3, CreditCard, LogOut } from "lucide-react"
+import {MessageSquare, User, BarChart3, CreditCard, LogOut } from "lucide-react"
+import { useSession } from "next-auth/react"
 import { signOut } from "next-auth/react"
+import Link from "next/link"
 import {
   Sidebar,
   SidebarContent,
@@ -17,8 +19,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden"
+import { memo } from "react"
 
-const items = [
+const itemsUser = [
   {
     title: "Dashboard",
     url: "/dashboard",
@@ -31,9 +34,25 @@ const items = [
   },
 ]
 
-export function AppSidebar() {
-  const pathname = usePathname()
+const itemsAdmin = [
+  ...itemsUser,
+  {
+    title: "Usuarios",
+    url: "/admin/usuarios",
+    icon: User,
+  },
+]
 
+// Memoizar el componente para evitar re-renders innecesarios
+export const AppSidebar = memo(function AppSidebar() {
+  const { data: session } = useSession()
+  const pathname = usePathname()
+  
+  if(!session) return null // No session, do not render sidebar
+  
+  const isAdmin = (session?.user as any).rol == "admin"
+  const items = isAdmin ? itemsAdmin : itemsUser
+  
   return (
     <Sidebar className="border-r bg-white">
       {/* Título oculto para accesibilidad */}
@@ -65,10 +84,11 @@ export function AppSidebar() {
                     isActive={pathname === item.url}
                     className="text-base py-3 px-4 mx-2 my-1 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-200 data-[active=true]:bg-primary data-[active=true]:text-white data-[active=true]:font-semibold data-[active=true]:shadow-sm"
                   >
-                    <a href={item.url} className="flex items-center gap-3">
+                    {/* Usar Link de Next.js en lugar de <a> para navegación del lado del cliente */}
+                    <Link href={item.url} className="flex items-center gap-3">
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -89,4 +109,4 @@ export function AppSidebar() {
       </SidebarFooter>
     </Sidebar>
   )
-}
+})
