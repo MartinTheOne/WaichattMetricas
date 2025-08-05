@@ -1,19 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 import {compare} from 'bcryptjs';
 
+interface UserDB {
+  id_cliente: string;
+  email: string;
+  password: string;
+  name: string ;
+  rol: number;
+}
+
 interface User {
   id: string;
   email: string;
-  name: string ;
+  name: string;
+  name_role: string;
 }
-
 const supabase = createClient(
   process.env.DATABASE_URL ?? '',
   process.env.PUBLIC_ANON_KEY ?? ''
 );
 
 export async function getUserByEmail(email: string, pass: string): Promise<User | null> {
-  const { data, error } = await supabase.from('waichatt_usuarios').select('id_cliente,email,password,name').eq('email', email).limit(1);
+  const { data, error } = await supabase.from('waichatt_usuarios').select('id_cliente,email,password,name,rol').eq('email', email).limit(1);
 
   if (error) {
     console.error('[Supabase error]', error);
@@ -24,12 +32,32 @@ export async function getUserByEmail(email: string, pass: string): Promise<User 
     return null;
   }
 
-  const user:User = data[0];
+  const user:UserDB = data[0];
 
-  const isValid = await compare(pass, (user as any).password);
+  const isValid = await compare(pass,user.password);
   if (!isValid) {
     return null;
   }
+  const rol=await getRole(user.rol);
 
-  return { id: String((user as any).id_cliente), email: user.email, name: user.name };
+  console.log(rol)
+
+  if(!rol) {
+    return null;
+  }
+
+  return { id: String(user.id_cliente), email: user.email, name: user.name,name_role: rol };
+}
+
+async function getRole(id_rol: number):Promise<string | null> {
+  const {data,error}= await supabase.rpc('get_rol', { id_rol });
+
+  if( error) {
+    console.error('[Supabase error]', error);
+    return null;
+  }
+  if (!data || data.length === 0) {
+    return null;
+  }
+  return data[0];
 }
