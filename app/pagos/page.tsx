@@ -66,6 +66,23 @@ const TableRowSkeleton = () => (
   </TableRow>
 )
 
+const MobilePaymentCardSkeleton = () => (
+  <Card aria-busy="true" aria-live="polite">
+    <CardContent className="p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-6 w-16 rounded-full" />
+      </div>
+      <Skeleton className="h-4 w-20" />
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-4 w-40" />
+      <div className="pt-2">
+        <Skeleton className="h-9 w-28" />
+      </div>
+    </CardContent>
+  </Card>
+)
+
 export default function PagosPage() {
   const { data: session } = useSession();
   const [payments, setPayments] = useState<IFacturacion[]>([]);
@@ -75,7 +92,7 @@ export default function PagosPage() {
 
   useEffect(() => {
     const cargarFacturacion = async () => {
-      if(payments.length > 0) return; 
+      if (payments.length > 0) return;
       try {
         setIsLoading(true);
         setError(null);
@@ -124,8 +141,8 @@ export default function PagosPage() {
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
               <p>{error}</p>
-              <Button 
-                onClick={() => window.location.reload()} 
+              <Button
+                onClick={() => window.location.reload()}
                 className="mt-4"
                 variant="outline"
               >
@@ -137,6 +154,7 @@ export default function PagosPage() {
       </div>
     )
   }
+
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8">
@@ -181,69 +199,137 @@ export default function PagosPage() {
       </div>
 
       {/* Historial de pagos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Historial de Pagos</CardTitle>
-          <CardDescription>Todos tus pagos y facturas en un solo lugar</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            {isLoading ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Factura ID</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Monto</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <TableRowSkeleton key={index} />
-                  ))}
-                </TableBody>
-              </Table>
-            ) : payments.length === 0 ? (
-              <p className="text-muted-foreground text-sm text-center py-8">No hay pagos registrados.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Factura ID</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Monto</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-center">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell className="font-mono text-sm">AAA-{payment.id < 10 ? '0' : ''}{payment.id}</TableCell>
-                      <TableCell className="font-medium">{formatDate(payment.fecha)}</TableCell>
-                      <TableCell>{formatAmount(payment.monto)}</TableCell>
-                      <TableCell>{getStatusBadge(payment.estado)}</TableCell>
-                      <TableCell className="text-center">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          disabled={payment.estado !== "pagado" || isDownloading}
-                          onClick={() => handleDownload({ ...payment, facturaId: payment.id })}
+      <section className="flex-1 flex flex-col min-h-0">
+        <Card className="flex-1 flex flex-col overflow-hidden">
+          <CardHeader >
+            <div className="flex justify-between">
+              <div>
+                <CardTitle>Historial de Pagos</CardTitle>
+                <CardDescription>Todos los pagos y facturas en un solo lugar</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
+            {/* Mobile: lista de tarjetas */}
+            <div className="md:hidden flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => <MobilePaymentCardSkeleton key={i} />)
+              ) : payments.length === 0 ? (
+                <div className="flex items-center justify-center py-10">
+                  <p className="text-muted-foreground text-sm">No hay pagos registrados.</p>
+                </div>
+              ) : (
+                payments.map((pago) => (
+                  <Card key={pago.id}>
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-sm">AAA-{pago.id < 10 ? "0" : ""}{pago.id}</span>
+                        {getStatusBadge(pago.estado)}
+                      </div>
+
+                      <div className="text-sm text-muted-foreground">{formatDate(pago.fecha)}</div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Monto</span>
+                        <span className="font-medium">{formatAmount(pago.monto)}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Plan</span>
+                        <span className="font-medium truncate max-w-[60%]">
+                          {pago.plan}
+                        </span>
+                      </div>
+
+                      <div className="pt-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-center"
+                          disabled={pago.estado !== "pagado" || isDownloading}
+                          onClick={() => handleDownload(pago)}
+                          aria-label={
+                            pago.estado === "pagado"
+                              ? "Descargar factura"
+                              : "Descarga deshabilitada: factura no pagada"
+                          }
                         >
-                          <Download className="" />
+                          <Download className="mr-2 h-4 w-4" />
                           Descargar
                         </Button>
-                      </TableCell>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+
+            {/* Desktop/Tablet: tabla con header separado */}
+            <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-hidden">
+              {/* Header fijo de la tabla */}
+              <div className="border-b bg-muted/50">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-[120px] font-semibold">Factura ID</TableHead>
+                      <TableHead className="w-[140px] font-semibold">Fecha</TableHead>
+                      <TableHead className="w-[100px] font-semibold">Monto</TableHead>
+                      <TableHead className="w-[100px] font-semibold">Estado</TableHead>
+                      <TableHead className="w-[100px] font-semibold">Plan</TableHead>
+                      <TableHead className="w-[120px] text-center font-semibold">Acciones</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                </Table>
+              </div>
+
+              {/* Body con scroll de la tabla */}
+              <div className="flex-1 overflow-y-auto">
+                {isLoading ? (
+                  <Table>
+                    <TableBody>
+                      {Array.from({ length: 6 }).map((_, index) => (
+                        <TableRowSkeleton key={index} />
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : payments.length === 0 ? (
+                  <div className="flex items-center justify-center py-10">
+                    <p className="text-muted-foreground text-sm">No hay pagos registrados.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableBody>
+                      {payments.map((payment) => (
+                        <TableRow key={payment.id} className="hover:bg-muted/50">
+                          <TableCell className="w-[120px] font-mono text-sm">
+                            AAA-{payment.id < 10 ? "0" : ""}
+                            {payment.id}
+                          </TableCell>
+                          <TableCell className="w-[140px] font-medium">{formatDate(payment.fecha)}</TableCell>
+                          <TableCell className="w-[100px]">{formatAmount(payment.monto)}</TableCell>
+                          <TableCell className="w-[100px]">{getStatusBadge(payment.estado)}</TableCell>
+                          <TableCell className="w-[100px]">{payment.plan}</TableCell>
+                          <TableCell className="text-center w-[100px]">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={payment.estado !== "pagado" || isDownloading}
+                              onClick={() => handleDownload({ ...payment, facturaId: payment.id })}
+                            >
+                              <Download className="" />
+                              Descargar
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   )
 }

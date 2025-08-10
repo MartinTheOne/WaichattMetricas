@@ -1,5 +1,5 @@
 "use client"
-import { ProtectedRouteAdmin } from "@/components/protected-route-admin"
+import { ProtectedRouteAdmin } from "@/components/admin/protected-route-admin"
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatsCards } from "@/components/admin/StatsCards"
@@ -76,7 +76,7 @@ export default function Dashboard() {
         if (users.length > 0) return // Evitar recargar si ya hay usuarios
         const fetchData = async () => {
             try {
-                const res = await fetch('/api/clientes')
+                const res = await fetch('/api/admin/clientes')
                 const data = await res.json()
                 setUsers(data.users || [])
                 setClients(data.clients || [])
@@ -129,7 +129,7 @@ export default function Dashboard() {
                 return
             }
 
-            const res = await fetch('/api/clientes', {
+            const res = await fetch('/api/admin/clientes', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -149,7 +149,7 @@ export default function Dashboard() {
             setEditingClient(null)
             handleCloseClientForm()
         } else {
-            const res = await fetch('/api/clientes', {
+            const res = await fetch('/api/admin/clientes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(clientData)
@@ -178,7 +178,7 @@ export default function Dashboard() {
     }
 
     const handleDeleteClient = async (id: number) => {
-        const res = await fetch(`/api/clientes?id=${id}`, {
+        const res = await fetch(`/api/admin/clientes?id=${id}`, {
             method: 'DELETE',
         })
         if (res.status !== 200) {
@@ -224,7 +224,7 @@ export default function Dashboard() {
                 toast.warning('No se detectaron cambios para actualizar')
                 return
             }
-            const res = await fetch('/api/usuarios', {
+            const res = await fetch('/api/admin/usuarios', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -245,7 +245,7 @@ export default function Dashboard() {
 
         } else {
             // Create new user
-            const res = await fetch('/api/usuarios', {
+            const res = await fetch('/api/admin/usuarios', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
@@ -279,7 +279,7 @@ export default function Dashboard() {
     }
 
     const handleDeleteUser = async (id: number) => {
-        const res = await fetch(`/api/usuarios?id=${id}`, {
+        const res = await fetch(`/api/admin/usuarios?id=${id}`, {
             method: 'DELETE',
         })
         if (res.status !== 200) {

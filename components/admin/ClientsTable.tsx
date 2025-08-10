@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Edit, Trash2 } from 'lucide-react'
 import type { Client, Plan } from "@/types/index"
-import { DeleteClientDialog } from "@/components/delete-client-dialog"
+import { DeleteClientDialog } from "@/components/admin/delete-client-dialog"
 
 interface ClientsTableProps {
   clients: Client[]

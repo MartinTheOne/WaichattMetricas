@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { downloadInvoicePDF } from "@/components/download-invoice"
-import { DeletePaymentDialog } from "@/components/delete-payments-dialog"
+import { DeletePaymentDialog } from "@/components/admin/delete-payments-dialog"
 // Tipos mínimos para este ejemplo (ajústalos si tus tipos reales difieren)
 type Cliente = {
   id: number
@@ -154,7 +154,7 @@ export default function PagosPage() {
       try {
         setIsLoading(true)
         setError(null)
-        const response = await fetch("/api/facturacion-total")
+        const response = await fetch("/api/admin/facturacion-total")
         const data = await response.json()
         if (!data.billing || data.billing.length === 0) {
           setPayments([])
