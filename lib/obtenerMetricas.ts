@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './auth';
 
 const supabase = createClient(
     process.env.DATABASE_URL ?? '',
@@ -282,11 +283,11 @@ class ChatwootAPI {
 
 // Función principal para obtener métricas
 export async function obtenerMetricas(): Promise<MetricasResponse> {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
         throw new Error('No hay sesión activa');
     }
-    if (!session.user.email) {
+    if (!session.user?.email) {
         throw new Error('El usuario no tiene un email asociado');
     }
 
