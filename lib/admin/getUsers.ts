@@ -23,5 +23,5 @@ export async function getUsers() {
         id_rol: user.rol,
         url_base: user.url_base || "https://app.waichatt.com/api/v2/accounts/id_cuenta",
         api_access_token: user.api_access_token || "",
-    }));
+    })).sort((a, b) => a.id-b.id);
 }

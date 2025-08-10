@@ -4,5 +4,6 @@ export interface IFacturacion {
     fecha: string;
     monto: number;
     estado: string;
+    cliente: number;
     //metodo: string;
 }

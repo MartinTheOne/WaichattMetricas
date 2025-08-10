@@ -37,7 +37,7 @@ export async function obtenerFacturacion(): Promise<IFacturacion[]> {
     response.sort((a, b) => {
         const date1 = new Date(a.fecha).getTime();
         const date2 = new Date(b.fecha).getTime();
-        return date2 - date1; // reciente primero
+        return date2 - date1; 
     });
 
     return response;

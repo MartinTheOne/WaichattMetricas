@@ -157,7 +157,7 @@ export const generateInvoicePDF = async (
   }
   
   // Generar y descargar el PDF
-  const fileName = `Factura_${invoiceData.facturaId}_${invoiceData.fecha.replace(/\//g, '-')}.pdf`;
+  const fileName = `Factura_${invoiceData.facturaId}_${invoiceData.fecha.replace(/\//g, '-')}_${clientData.nombre}.pdf`;
   doc.save(fileName);
   
   return fileName;

@@ -1,6 +1,6 @@
 "use client"
 
-import {MessageSquare, User, BarChart3, CreditCard, LogOut } from "lucide-react"
+import { MessageSquare, User, BarChart3, CreditCard, LogOut, Receipt } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
@@ -15,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
@@ -35,11 +36,20 @@ const itemsUser = [
 ]
 
 const itemsAdmin = [
-  ...itemsUser,
   {
-    title: "Usuarios",
-    url: "/admin/usuarios",
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: BarChart3,
+  },
+  {
+    title: "Clientes",
+    url: "/admin/clientes",
     icon: User,
+  },
+  {
+    title: "Facturación",
+    url: "/admin/facturacion",
+    icon: Receipt,
   },
 ]
 
@@ -47,14 +57,20 @@ const itemsAdmin = [
 export const AppSidebar = memo(function AppSidebar() {
   const { data: session } = useSession()
   const pathname = usePathname()
-  
-  if(!session) return null // No session, do not render sidebar
-  
-  const isAdmin = (session?.user as any).rol == "admin"
+  const { setOpenMobile, isMobile } = useSidebar()
+
+  const handleItemClick = () => {
+    // Cierra el sidebar solo en vista móvil
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+  }
+
+  const isAdmin = (session?.user as any)?.rol == "admin"
   const items = isAdmin ? itemsAdmin : itemsUser
-  
+
   return (
-    <Sidebar className="border-r bg-white">
+    <Sidebar className="border-r bg-white" >
       {/* Título oculto para accesibilidad */}
       <VisuallyHidden.Root>
         <h2>Menú de navegación de Waichatt</h2>
@@ -84,8 +100,7 @@ export const AppSidebar = memo(function AppSidebar() {
                     isActive={pathname === item.url}
                     className="text-base py-3 px-4 mx-2 my-1 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-200 data-[active=true]:bg-primary data-[active=true]:text-white data-[active=true]:font-semibold data-[active=true]:shadow-sm"
                   >
-                    {/* Usar Link de Next.js en lugar de <a> para navegación del lado del cliente */}
-                    <Link href={item.url} className="flex items-center gap-3">
+                    <Link href={item.url} className="flex items-center gap-3" onClick={handleItemClick}>
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
                     </Link>
@@ -101,7 +116,13 @@ export const AppSidebar = memo(function AppSidebar() {
         <Button
           variant="ghost"
           className="w-full justify-start text-base py-3 px-4 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all duration-200"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => {
+            signOut({ callbackUrl: "/login" })
+            // También cerrar el sidebar al hacer logout en móvil
+            if (isMobile) {
+              setOpenMobile(false)
+            }
+          }}
         >
           <LogOut className="mr-3 h-5 w-5" />
           Cerrar Sesión

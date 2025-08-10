@@ -5,11 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatsCards } from "@/components/admin/StatsCards"
 import { ClientsTab } from "@/components/admin/ClientsTab"
 import { UsersTab } from "@/components/admin/UsersTab"
-import type { Client, SystemUser } from "@/types/index"
-import { plans, roles, initialClients, initialUsers } from "@/data/mocuck"
+import type { Client, Plan, SystemUser } from "@/types/index"
+import { roles } from "@/data/mocuck"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner";
 
 // Componente Skeleton para las cards de resumen
 const SummaryCardSkeleton = () => (
@@ -34,7 +35,7 @@ const LoadingSkeleton = () => (
                 <SummaryCardSkeleton key={i} />
             ))}
         </div>
-        
+
         {/* Tabla skeleton */}
         <Card>
             <CardHeader>
@@ -65,19 +66,21 @@ const LoadingSkeleton = () => (
 )
 
 export default function Dashboard() {
-    const [clients, setClients] = useState<Client[]>(initialClients)
+    const [clients, setClients] = useState<Client[]>([])
     const [users, setUsers] = useState<SystemUser[]>([])
+    const [plans, setPlans] = useState<Plan[]>([])
     const [loading, setLoading] = useState<boolean>(true) // Cambiar a true inicialmente
 
 
     useEffect(() => {
-        if(users.length > 0) return // Evitar recargar si ya hay usuarios
-        const fetchUsers = async () => {
+        if (users.length > 0) return // Evitar recargar si ya hay usuarios
+        const fetchData = async () => {
             try {
                 const res = await fetch('/api/clientes')
                 const data = await res.json()
                 setUsers(data.users || [])
                 setClients(data.clients || [])
+                setPlans(data.plans || [])
             } catch (error) {
                 console.error('Error fetching users:', error)
                 // Mantener array vacío en caso de error
@@ -87,18 +90,15 @@ export default function Dashboard() {
                 setLoading(false)
             }
         }
-        fetchUsers()
-    }, []) // Eliminar dependencia de users para evitar bucle infinito
+        fetchData()
+    }, [])
 
-    // Client state
     const [isClientFormOpen, setIsClientFormOpen] = useState(false)
     const [editingClient, setEditingClient] = useState<Client | null>(null)
 
-    // User state
     const [isUserFormOpen, setIsUserFormOpen] = useState(false)
     const [editingUser, setEditingUser] = useState<SystemUser | null>(null)
 
-    // Client handlers
     const handleOpenClientForm = (client?: Client) => {
         setEditingClient(client || null)
         setIsClientFormOpen(true)
@@ -109,27 +109,87 @@ export default function Dashboard() {
         setIsClientFormOpen(false)
     }
 
-    const handleSubmitClient = (clientData: Partial<Client>) => {
+    const handleSubmitClient = async (clientData: Partial<Client>) => {
         if (editingClient) {
-            // Update existing client
+            type ClientValue = Client[keyof Client];
+            const updatedFields: Partial<Record<keyof Client, ClientValue>> = {};
+
+            for (const key in clientData) {
+                const typedKey = key as keyof Client;
+
+                const newValue = clientData[typedKey];
+                if (newValue !== undefined && newValue !== editingClient[typedKey]) {
+                    updatedFields[typedKey] = newValue;
+                }
+            }
+
+            if (Object.keys(updatedFields).length === 0) {
+                console.log('No changes detected, skipping update')
+                toast.warning('No se detectaron cambios para actualizar')
+                return
+            }
+
+            const res = await fetch('/api/clientes', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: editingClient.id,
+                    ...updatedFields
+                })
+            })
+            if (res.status !== 200) {
+                const errorData = await res.json()
+                toast.error('Error al actualizar cliente')
+                console.error('Error updating client:', errorData)
+                return
+            }
             setClients(clients.map((client) => (client.id === editingClient.id ? { ...client, ...clientData } : client)))
+
+            toast.success('Cliente actualizado correctamente')
+            setEditingClient(null)
+            handleCloseClientForm()
         } else {
+            const res = await fetch('/api/clientes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(clientData)
+            })
+
+            if (res.status !== 201) {
+                const errorData = await res.json()
+                toast.error('Error al crear cliente')
+                console.error('Error creating client:', errorData)
+                return
+            }
+            const data = await res.json()
             // Create new client
             const newClient: Client = {
-                id: Math.max(...clients.map((c) => c.id), 0) + 1,
+                id: data.id ?? 0,
                 nombre_completo: clientData.nombre_completo!,
                 telefono: clientData.telefono!,
                 cantidad_mensajes: clientData.cantidad_mensajes || 0,
                 email: clientData.email!,
                 id_plan: clientData.id_plan!,
             }
-            setClients([...clients, newClient])
+            setClients([...clients, newClient].sort((a, b) => a.id - b.id))
+            toast.success('Cliente creado correctamente')
+            handleCloseClientForm();
         }
     }
 
-    const handleDeleteClient = (id: number) => {
+    const handleDeleteClient = async (id: number) => {
+        const res = await fetch(`/api/clientes?id=${id}`, {
+            method: 'DELETE',
+        })
+        if (res.status !== 200) {
+            const errorData = await res.json()
+            toast.error('Error al eliminar cliente')
+            console.error('Error deleting client:', errorData)
+            return
+        }
         setClients(clients.filter((client) => client.id !== id))
         setUsers(users.filter((user) => user.id_cliente !== id))
+        toast.success('Cliente eliminado correctamente')
     }
 
     // User handlers
@@ -143,28 +203,93 @@ export default function Dashboard() {
         setIsUserFormOpen(false)
     }
 
-    const handleSubmitUser = (userData: Partial<SystemUser>) => {
+    const handleSubmitUser = async (userData: Partial<SystemUser>) => {
         if (editingUser) {
-            // Update existing user
+            type userValue = SystemUser[keyof SystemUser];
+            const updatedFields: Partial<Record<keyof SystemUser, userValue>> = {};
+
+            for (const key in userData) {
+                const typedKey = key as keyof SystemUser;
+
+                const newValue = userData[typedKey];
+                if (newValue !== undefined && newValue !== editingUser[typedKey]) {
+                    updatedFields[typedKey] = newValue;
+                }
+            }
+            if (userData?.password?.trim() === "") {
+                delete updatedFields.password;
+            }
+            if (Object.keys(updatedFields).length === 0) {
+                console.log('No changes detected, skipping update')
+                toast.warning('No se detectaron cambios para actualizar')
+                return
+            }
+            const res = await fetch('/api/usuarios', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: editingUser.id,
+                    ...updatedFields
+                })
+            })
+            if (res.status !== 200) {
+                const errorData = await res.json();
+                toast.error('Error al actualizar usuario');
+                console.error('Error updating client:', errorData);
+                return
+            }
             setUsers(users.map((user) => (user.id === editingUser.id ? { ...user, ...userData } : user)))
+            toast.success('Usuario actualizado correctamente')
+            setEditingUser(null)
+            handleCloseUserForm()
+
         } else {
             // Create new user
+            const res = await fetch('/api/usuarios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            })
+            if(res.status === 409) {
+                toast.error('El email ya está en uso');
+                return
+            }
+            if (res.status !== 201) {
+                const errorData = await res.json();
+                toast.error('Error al crear usuario');
+                console.error('Error creating user:', errorData);
+                return
+            }
+            const data = await res.json()
             const newUser: SystemUser = {
-                id: Math.max(...users.map((u) => u.id), 0) + 1,
+                id: data.id ?? 0,
                 email: userData.email!,
-                password: userData.password!,
+                password: "",
                 url_base: userData.url_base || "https://api.waichatt.com",
-                api_access_token: `wai_${Math.random().toString(36).substr(2, 9)}`,
+                api_access_token: userData.api_access_token || "",
                 nombre: userData.nombre!,
                 id_cliente: userData.id_cliente!,
                 id_rol: userData.id_rol!,
             }
-            setUsers([...users, newUser])
+            setUsers([...users, newUser].sort((a, b) => a.id - b.id))
+            toast.success('Usuario creado correctamente')
+            handleCloseUserForm()
         }
+
     }
 
-    const handleDeleteUser = (id: number) => {
+    const handleDeleteUser = async (id: number) => {
+        const res = await fetch(`/api/usuarios?id=${id}`, {
+            method: 'DELETE',
+        })
+        if (res.status !== 200) {
+            const errorData = res.json()
+            toast.error('Error al eliminar usuario')
+            console.log('Error deleting user:', errorData)
+            return
+        }
         setUsers(users.filter((user) => user.id !== id))
+        toast.success('Usuario eliminado correctamente')
     }
 
     return (
@@ -174,7 +299,6 @@ export default function Dashboard() {
                     <div className="max-w-7xl mx-auto">
                         <div className="mb-6">
                             <h2 className="text-2xl font-bold text-gray-900">Gestión de Clientes y Usuarios</h2>
-                            <p className="text-gray-600">Administra todos tus clientes y usuarios en un solo lugar</p>
                         </div>
 
                         {loading ? (

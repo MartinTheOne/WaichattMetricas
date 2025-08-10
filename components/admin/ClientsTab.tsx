@@ -1,10 +1,11 @@
-"use client"
+'use client'
 
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus } from 'lucide-react'
 import type { Client, Plan } from "@/types/index"
-import { ClientsTable } from "./ClientsTable"
-import { ClientForm } from "./ClientForm"
+import { ClientsTable } from "../admin/ClientsTable"
+import { ClientForm } from "../admin/ClientForm"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
 interface ClientsTabProps {
   clients: Client[]
@@ -28,20 +29,29 @@ export function ClientsTab({
   onDelete,
 }: ClientsTabProps) {
   return (
+    // Removido flex-1 flex flex-col min-h-0 - solo mantenemos space-y-4
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-semibold">Lista de Clientes</h3>
-          <p className="text-sm text-gray-600">Gestiona todos los clientes registrados</p>
-        </div>
-        <Button onClick={() => onOpenForm()} className="bg-green-600 hover:bg-green-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Cliente
-        </Button>
-      </div>
-
-      <ClientsTable clients={clients} plans={plans} onEdit={onOpenForm} onDelete={onDelete} />
-
+      {/* Removido flex-1 min-h-0 y simplificado las clases */}
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <div className="flex justify-between lg:gap-0">
+            <div>
+              <CardTitle>Lista de Clientes</CardTitle>
+              <CardDescription>Gestiona todos los clientes registrados</CardDescription>
+            </div>
+            <div className="lg:ml-0">
+              <Button onClick={() => onOpenForm()} className="bg-green-600 hover:bg-green-700">
+                <Plus className="mr-2 h-4 w-4" />
+                Nuevo Cliente
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        {/* Simplificado a solo p-0 */}
+        <CardContent className="p-0">
+          <ClientsTable clients={clients} plans={plans} onEdit={onOpenForm} onDelete={onDelete} />
+        </CardContent>
+      </Card>
       <ClientForm
         isOpen={isFormOpen}
         onClose={onCloseForm}

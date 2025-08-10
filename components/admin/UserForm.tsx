@@ -60,20 +60,8 @@ export function UserForm({ isOpen, onClose, onSubmit, editingUser, clients, role
     const isPasswordValid = editingUser ? true : (formData.password && formData.password.trim() !== "")
 
     if (isValidForm && isPasswordValid) {
-      console.log('Submitting form data:', formData)
       onSubmit(formData)
       
-      // Reset form y cerrar modal
-      setFormData({ 
-        url_base: "https://app.waichatt.com/api/v2/accounts/id_cuenta",
-        password: "",
-        email: "",
-        nombre: "",
-        api_access_token: "",
-        id_cliente: undefined,
-        id_rol: undefined
-      })
-      onClose()
     } else {
       // Mostrar qué campos faltan
       const missingFields = requiredFields.filter(field => {

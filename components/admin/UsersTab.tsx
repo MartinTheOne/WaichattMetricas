@@ -5,6 +5,7 @@ import { Plus } from "lucide-react"
 import type { SystemUser, Client, Role } from "@/types/index"
 import { UsersTable } from "./UsersTable"
 import { UserForm } from "./UserForm"
+import { CardHeader, Card, CardTitle, CardDescription, CardContent } from "../ui/card"
 
 interface UsersTabProps {
   users: SystemUser[]
@@ -32,18 +33,27 @@ export function UsersTab({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-semibold">Lista de Usuarios</h3>
-          <p className="text-sm text-gray-600">Gestiona todos los usuarios del sistema</p>
-        </div>
-        <Button onClick={() => onOpenForm()} className="bg-green-600 hover:bg-green-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Usuario
-        </Button>
+
+        <Card className="flex-1 flex flex-col overflow-hidden">
+          <CardHeader>
+            <div className="flex justify-between">
+              <div>
+                <CardTitle>Lista de Usuarios</CardTitle>
+                <CardDescription>Gestiona todos los usuarios registrados</CardDescription>
+              </div>
+              <div>
+                <Button onClick={() => onOpenForm()} className="bg-green-600 hover:bg-green-700">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nuevo Usuario
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col overflow-hidden p-0 ">
+            <UsersTable users={users} clients={clients} roles={roles} onEdit={(user) => onOpenForm(user)} onDelete={onDelete} />
+          </CardContent>
+        </Card>
       </div>
-
-      <UsersTable users={users} clients={clients} roles={roles} onEdit={(user) => onOpenForm(user)} onDelete={onDelete} />
-
       <UserForm
         isOpen={isFormOpen}
         onClose={onCloseForm}

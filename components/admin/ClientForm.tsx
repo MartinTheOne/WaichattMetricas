@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState,useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -19,11 +19,24 @@ interface ClientFormProps {
 export function ClientForm({ isOpen, onClose, onSubmit, editingClient, plans }: ClientFormProps) {
   const [formData, setFormData] = useState<Partial<Client>>(editingClient || {})
 
-  const handleSubmit = () => {
-    if (formData.nombre_completo && formData.telefono && formData.email && formData.id_plan) {
-      onSubmit(formData)
+  useEffect(() => {
+    if (editingClient) {
+      setFormData({
+        id: editingClient.id,
+        nombre_completo: editingClient.nombre_completo,
+        telefono: editingClient.telefono,
+        email: editingClient.email,
+        cantidad_mensajes: editingClient.cantidad_mensajes,
+        id_plan: editingClient.id_plan
+      })
+    } else {
       setFormData({})
-      onClose()
+    }
+  }, [editingClient])
+
+  const handleSubmit = () => {
+    if (formData.nombre_completo?.trim() && formData.telefono?.trim() && formData.email?.trim() && formData.id_plan) {
+      onSubmit(formData)
     }
   }
 
