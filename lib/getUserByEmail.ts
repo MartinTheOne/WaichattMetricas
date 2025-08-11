@@ -1,20 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { compare } from 'bcryptjs';
+import {UserDB, User} from '../types/IGetUserByEmail'
 
-interface UserDB {
-  id_cliente: string;
-  email: string;
-  password: string;
-  name: string;
-  rol: string;
-}
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  rol: string;
-}
 const supabase = createClient(
   process.env.DATABASE_URL ?? '',
   process.env.PUBLIC_ANON_KEY ?? ''
@@ -28,7 +16,6 @@ export async function getUserByEmail(email: string, pass: string): Promise<User 
     console.error('[Supabase error]', error);
     return null;
   }
-
   if (!data) {
     return null;
   }

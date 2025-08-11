@@ -12,27 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { downloadInvoicePDF } from "@/components/download-invoice"
 import { DeletePaymentDialog } from "@/components/admin/delete-payments-dialog"
-// Tipos mínimos para este ejemplo (ajústalos si tus tipos reales difieren)
-type Cliente = {
-  id: number
-  nombre_completo: string
-  email?: string
-}
+import {Cliente, Plan, IFacturacion} from '@/types/IFacturacionPage'
 
-type Plan = {
-  id: number
-  nombre_plan: string
-  precio: number
-}
-
-type IFacturacion = {
-  id: number
-  fecha: string
-  monto: number
-  estado: "pagado" | "pendiente" | "fallido" | string
-  cliente: Cliente
-  plan: Plan
-}
 
 const getStatusBadge = (status: string) => {
   switch (status) {

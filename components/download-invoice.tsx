@@ -1,25 +1,6 @@
 import jsPDF from 'jspdf';
+import { InvoiceData, CompanyData, ClientData } from '../types/IDownloadInvoice';
 
-interface InvoiceData {
-  fecha: string;
-  monto: number;
-  estado: string;
-  facturaId: number;
-  plan: string;
-  id: number;
-}
-
-interface CompanyData {
-  nombre: string;
-  email: string;
-  telefono: string;
-  direccion: string;
-}
-
-interface ClientData {
-  nombre: string;
-  email: string;
-}
 
 export const generateInvoicePDF = async (
   invoiceData: InvoiceData,
