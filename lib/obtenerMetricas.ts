@@ -1,53 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth';
+import {ChatwootReportResponse, DatosDiarios, MetricasResponse} from '@/types/IObtenerMetricas'
 
 const supabase = createClient(
     process.env.DATABASE_URL ?? '',
     process.env.PUBLIC_ANON_KEY ?? ''
 );
-
-
-interface ChatwootReportResponse {
-    value: number;
-    timestamp: number;
-}
-
-interface DatosDiarios {
-    fecha: string; // Formato YYYY-MM-DD
-    timestamp: number;
-    mensajesEnviados: number;
-    mensajesRecibidos: number;
-}
-
-interface MetricasResponse {
-    // Métricas históricas (desde 2024-12-12)
-    totalMensajesEnviadosHistoricos: number;
-    totalMensajesRecibidosHistoricos: number;
-    totalContactos: number;
-
-    // Métricas de última hora
-    mensajesEnviadosUltimaHora: number;
-    mensajesRecibidosUltimaHora: number;
-
-    // Métricas de último día
-    mensajesEnviadosUltimoDia: number;
-    mensajesRecibidosUltimoDia: number;
-
-    // Métricas de última semana
-    mensajesEnviadosUltimaSemana: number;
-    mensajesRecibidosUltimaSemana: number;
-
-    // Datos diarios de la última semana
-    datosDiariosUltimaSemana: DatosDiarios[];
-
-    // Información del cliente
-    cliente: {
-        plan: string;
-        mensajesRestantes: number;
-        nombre: string;
-    };
-}
 
 class ChatwootAPI {
     private baseUrl: string;

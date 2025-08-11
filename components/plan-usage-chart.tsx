@@ -1,12 +1,7 @@
 "use client"
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
-
-interface PlanUsageChartProps {
-  used: number
-  total: number
-}
-
+import { PlanUsageChartProps } from "@/types/IPlanUsageChart"
 export function PlanUsageChart({ used, total }: PlanUsageChartProps) {
   const remaining = total - used
 

@@ -1,19 +1,8 @@
 "use client"
 
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts"
+import {ChartData, MessagesChartProps} from "@/types/IMessageChart"
 import { DailyData } from "@/types/Imetric"
-
-
-interface ChartData {
-  name: string;
-  enviados: number;
-  recibidos: number;
-  fecha: string;
-}
-
-interface MessagesChartProps {
-  dailyData?: DailyData[];
-}
 
 export function MessagesChart({ dailyData }: MessagesChartProps) {
   // Datos de fallback si no hay datos reales
