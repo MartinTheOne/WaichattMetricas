@@ -14,10 +14,10 @@ export async function getPlans() {
     }
 
     return data.map(plan => ({
-        id: plan.id_planes,
-        nombre: plan.nombre_plan,
+        id: plan.id,
+        nombre: plan.plan,
         precio: plan.precio,
-        cantidad_mensajes: plan.mensajes_disponibles
+        cantidad_mensajes: plan.cant_mensajes
     })).sort((a, b) => a.id - b.id).filter(plan => plan.id !== 4); 
 }
 
@@ -31,9 +31,9 @@ export async function getPlansComplete() {
     }
 
     return data.map(plan => ({
-        id: plan.id_planes,
-        nombre: plan.nombre_plan,
+        id: plan.id,
+        nombre: plan.plan,
         precio: plan.precio,
-        cantidad_mensajes: plan.mensajes_disponibles
+        cantidad_mensajes: plan.cant_mensajes
     })).sort((a, b) => a.id - b.id); 
 }

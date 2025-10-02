@@ -22,7 +22,7 @@ export function UsersTable({ users, clients, roles, onEdit, onDelete }: UsersTab
     return roles.find((role) => role.id === id_rol)?.nombre || "Rol no encontrado"
   }
   const getClientName = (id_cliente: number) => {
-    return clients.find((client) => client.id === id_cliente)?.nombre_completo || "Cliente no encontrado"
+    return clients.find((client) => client.id === id_cliente)?.nombre || "Cliente no encontrado"
   }
 
   return (

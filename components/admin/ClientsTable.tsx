@@ -14,11 +14,12 @@ interface ClientsTableProps {
   plans: Plan[]
   onEdit: (client: Client) => void
   onDelete: (id: number) => void
+  loading: boolean
 }
 
-export function ClientsTable({ clients, plans, onEdit, onDelete }: ClientsTableProps) {
-  const getPlanName = (id_plan: number) => {
-    return plans.find((plan) => plan.id === id_plan)?.nombre || "Plan no encontrado"
+export function ClientsTable({ clients, plans, onEdit, onDelete, loading }: ClientsTableProps) {
+  const getPlanName = (plan_id: number) => {
+    return plans.find((plan) => plan.id === plan_id)?.nombre || "Plan no encontrado"
   }
 
   return (
@@ -55,16 +56,16 @@ export function ClientsTable({ clients, plans, onEdit, onDelete }: ClientsTableP
                 clients.map((client) => (
                   <TableRow key={client.id} className="hover:bg-muted/50">
                     <TableCell className="w-[80px] font-medium">#{client.id}</TableCell>
-                    <TableCell className="w-[200px]">{client.nombre_completo}</TableCell>
+                    <TableCell className="w-[200px]">{client.nombre}</TableCell>
                     <TableCell className="w-[140px]">{client.telefono}</TableCell>
                     <TableCell className="w-[200px] truncate" title={client.email}>
                       {client.email}
                     </TableCell>
-                    <TableCell className="w-[100px]">
-                      <Badge variant="secondary">{client.cantidad_mensajes.toLocaleString()}</Badge>
+                    <TableCell className="w-[100px] ">
+                      <Badge variant="secondary" className={client.mensajes_disponibles<0?`bg-red-500 text-gray-200 hover:bg-red-600`: "bg-green-500 text-gray-200 hover:bg-green-600"}>{client.mensajes_disponibles.toLocaleString()}</Badge>
                     </TableCell>
                     <TableCell className="w-[150px]">
-                      <Badge className="bg-green-100 text-green-800">{getPlanName(client.id_plan)}</Badge>
+                      <Badge className="bg-green-100 text-green-800">{getPlanName(client.plan_id)}</Badge>
                     </TableCell>
                     <TableCell className="w-[100px]">
                       <DropdownMenu>
@@ -79,7 +80,7 @@ export function ClientsTable({ clients, plans, onEdit, onDelete }: ClientsTableP
                             <Edit className="mr-2 h-4 w-4" />
                             Editar
                           </DropdownMenuItem>
-                          <DeleteClientDialog name={client.nombre_completo} onDelete={() => onDelete(client.id)}>
+                          <DeleteClientDialog loading={loading} name={client.nombre} onDelete={() => onDelete(client.id)}>
                             <DropdownMenuItem
                               className="text-red-600"
                               onSelect={(e) => e.preventDefault()}
@@ -109,7 +110,7 @@ export function ClientsTable({ clients, plans, onEdit, onDelete }: ClientsTableP
             <Card key={client.id}>
               <CardContent className="p-4 space-y-2 ">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-lg">{client.nombre_completo}</span>
+                  <span className="font-semibold text-lg">{client.nombre}</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
@@ -122,7 +123,7 @@ export function ClientsTable({ clients, plans, onEdit, onDelete }: ClientsTableP
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
                       </DropdownMenuItem>
-                      <DeleteClientDialog name={client.nombre_completo} onDelete={() => onDelete(client.id)}>
+                      <DeleteClientDialog loading={loading} name={client.nombre} onDelete={() => onDelete(client.id)}>
                         <DropdownMenuItem className="text-red-600" onSelect={(e) => e.preventDefault()}>
                           <Trash2 className="mr-2 h-4 w-4" />
                           Eliminar
@@ -148,12 +149,12 @@ export function ClientsTable({ clients, plans, onEdit, onDelete }: ClientsTableP
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Mensajes</span>
-                  <Badge variant="secondary">{client.cantidad_mensajes.toLocaleString()}</Badge>
+                  <Badge variant="secondary">{client.mensajes_disponibles.toLocaleString()}</Badge>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Plan</span>
-                  <Badge className="bg-green-100 text-green-800">{getPlanName(client.id_plan)}</Badge>
+                  <Badge className="bg-green-100 text-green-800">{getPlanName(client.plan_id)}</Badge>
                 </div>
               </CardContent>
             </Card>

@@ -10,7 +10,7 @@ const supabase = createClient(
 
 export async function getUserByEmail(email: string, pass: string): Promise<User | null> {
   const { data, error } = await supabase
-    .from('waichatt_usuarios_rol').select('id_cliente,email,password,name,rol').eq('email',email).single()
+    .from('waichatt_usuarios').select('cliente_id,email,clave,nombre,waichatt_roles(id,rol)').eq('email',email).single()
   console.log(data)
   if (error) {
     console.error('[Supabase error]', error);
@@ -22,11 +22,11 @@ export async function getUserByEmail(email: string, pass: string): Promise<User 
 
   const dbUser = data
   const user: UserDB = {
-    id_cliente: dbUser.id_cliente,
+    id_cliente: dbUser.cliente_id,
     email: dbUser.email,
-    password: dbUser.password,
-    name: dbUser.name,
-    rol: dbUser.rol
+    password: dbUser.clave,
+    name: dbUser.nombre,
+    rol: (dbUser.waichatt_roles as any)?.rol
   };
 
   const isValid = await compare(pass, user.password);

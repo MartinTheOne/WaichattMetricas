@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { DollarSign, Download, SearchIcon, Edit, Trash2, Plus,MoreHorizontal } from 'lucide-react'
+import { DollarSign, Download, SearchIcon, Edit, Trash2, Plus, MoreHorizontal } from 'lucide-react'
 import { PaymentForm } from "@/components/admin/paymentForm"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { downloadInvoicePDF } from "@/components/download-invoice"
 import { DeletePaymentDialog } from "@/components/admin/delete-payments-dialog"
-import {Cliente, Plan, IFacturacion} from '@/types/IFacturacionPage'
+import { Cliente, Plan, IFacturacion } from '@/types/IFacturacionPage'
+import { toast } from "sonner"
 
 
 const getStatusBadge = (status: string) => {
@@ -29,13 +30,13 @@ const getStatusBadge = (status: string) => {
 }
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("es-ES", {
+  return new Date(dateString).toLocaleDateString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
     year: "numeric",
     month: "long",
     day: "numeric",
   })
 }
-
 const formatAmount = (amount: number) => {
   return new Intl.NumberFormat("es-ES", {
     style: "currency",
@@ -127,8 +128,8 @@ export default function PagosPage() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [editingPayment, setEditingPayment] = useState<IFacturacion | null>(null)
-
 
   useEffect(() => {
     const cargarFacturacion = async () => {
@@ -137,13 +138,11 @@ export default function PagosPage() {
         setError(null)
         const response = await fetch("/api/admin/facturacion-total")
         const data = await response.json()
-        if (!data.billing || data.billing.length === 0) {
-          setPayments([])
-        } else {
-          setPayments(data.billing)
-          setCLiente(data.clients || [])
-          setPlans(data.plans || [])
-        }
+
+        setPayments(data.billing || [])
+        setCLiente(data.clients || [])
+        setPlans(data.plans || [])
+
       } catch (err) {
         console.error("Error al cargar facturación:", err)
         setError("Error al cargar los datos de facturación")
@@ -154,6 +153,7 @@ export default function PagosPage() {
     cargarFacturacion()
   }, [])
 
+
   const handleDownload = async (invoice: IFacturacion) => {
     if (invoice.estado !== "pagado") {
       alert("Solo se pueden descargar facturas pagadas")
@@ -163,9 +163,9 @@ export default function PagosPage() {
     try {
       const meta = {
         email: invoice.cliente?.email || "Sin email",
-        nombre: invoice.cliente?.nombre_completo || "Sin nombre",
+        nombre: invoice.cliente?.nombre || "Sin nombre",
       }
-      await downloadInvoicePDF({ ...invoice, facturaId: invoice.id, plan: invoice.plan.nombre_plan }, meta)
+      await downloadInvoicePDF({ ...invoice, facturaId: invoice.id, plan: invoice.plan.nombre }, meta)
     } catch (err) {
       console.error("Error al descargar:", err)
       alert("Error al generar el PDF")
@@ -183,20 +183,68 @@ export default function PagosPage() {
     setEditingPayment(payment)
     setIsFormOpen(true)
   }
+  const handleDeletePayment = async (id: number) => {
+    if (!id) return toast.error('ID de pago inválido', { position: 'top-center' })
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/facturacion-total?id=${id}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) {
+        throw new Error(`Error al eliminar el pago`);
+      }
+      toast.success('Pago eliminado correctamente', { position: 'top-center' })
+      setPayments(prev => prev.filter(p => p.id !== id));
+    } catch (error) {
+      console.error('Error al eliminar el pago:', error);
+      toast.error('Error al eliminar el pago', { position: 'top-center' })
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleFormSubmit = async (paymentData: Partial<IFacturacion>) => {
     try {
       if (editingPayment) {
-        // Lógica para actualizar pago existente
-        console.log('Actualizando pago:', paymentData)
+        const response = await fetch('/api/admin/facturacion-total', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingPayment.id, ...paymentData })
+        })
+        if (!response.ok) {
+          throw new Error(`Error en la actualización del pago: ${response.statusText}`);
+        }
+        const data = await response.json();
+        toast.success('Pago actualizado correctamente', { position: 'top-center' })
+        setPayments(prev => prev.map(p => p.id === editingPayment.id ? { ...p, ...paymentData } as IFacturacion : p));
+
+        console.log('Pago actualizado con ID:', data.id);
       } else {
-        // Lógica para crear nuevo pago
-        console.log('Creando nuevo pago:', paymentData)
+        try {
+          const response = await fetch('/api/admin/facturacion-total', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(paymentData)
+          })
+          if (!response.ok) {
+            throw new Error(`Error en la creación del pago: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          toast.success('Pago agregado correctamente', { position: 'top-center' })
+          setPayments(prev => [...prev, { id: data.id, cliente: { nombre: clients.find(c => c.id == (paymentData as any).cliente_id)?.nombre }, plan: { nombre: plans.find(p => p.id == (paymentData as any).plan_id)?.nombre }, ...paymentData } as IFacturacion]);
+          console.log('Pago creado con ID:', data.id);
+        } catch (error) {
+          console.error('Error al crear el pago:', error);
+        }
       }
-      setIsFormOpen(false)
-      // Recargar datos si es necesario
     } catch (error) {
       console.error('Error al guardar pago:', error)
+    }
+    finally {
+      setIsFormOpen(false)
+      setLoading(false)
     }
   }
 
@@ -210,10 +258,10 @@ export default function PagosPage() {
     if (!q) return payments
     return payments.filter((payment) => {
       const facturaId = `AAA-${payment.id < 10 ? "0" : ""}${payment.id}`.toLowerCase()
-      const cliente = payment.cliente?.nombre_completo?.toLowerCase?.() || ""
+      const cliente = payment.cliente?.nombre?.toLowerCase?.() || ""
       const monto = formatAmount(payment.monto).toLowerCase()
       const estado = payment.estado.toLowerCase()
-      const plan = payment.plan?.nombre_plan?.toLowerCase?.() || ""
+      const plan = payment.plan?.nombre?.toLowerCase?.() || ""
       return (
         facturaId.includes(q) ||
         cliente.includes(q) ||
@@ -332,7 +380,7 @@ export default function PagosPage() {
                         {getStatusBadge(pago.estado)}
                       </div>
 
-                      <div className="text-sm text-muted-foreground">{formatDate(pago.fecha)}</div>
+                      <div className="text-sm text-muted-foreground">{pago.fecha}</div>
 
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Monto</span>
@@ -342,14 +390,14 @@ export default function PagosPage() {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Cliente</span>
                         <span className="font-medium truncate max-w-[60%]">
-                          {pago.cliente?.nombre_completo}
+                          {pago.cliente?.nombre}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Plan</span>
                         <span className="font-medium truncate max-w-[60%]">
-                          {pago.plan?.nombre_plan}
+                          {pago.plan?.nombre}
                         </span>
                       </div>
 
@@ -418,11 +466,11 @@ export default function PagosPage() {
                             AAA-{payment.id < 10 ? "0" : ""}
                             {payment.id}
                           </TableCell>
-                          <TableCell className="w-[140px] font-medium">{formatDate(payment.fecha)}</TableCell>
+                          <TableCell className="w-[140px] font-medium">{payment.fecha}</TableCell>
                           <TableCell className="w-[100px]">{formatAmount(payment.monto)}</TableCell>
                           <TableCell className="w-[100px]">{getStatusBadge(payment.estado)}</TableCell>
-                          <TableCell className="w-[180px] truncate">{payment.cliente?.nombre_completo}</TableCell>
-                          <TableCell className="w-[140px] truncate">{payment.plan?.nombre_plan}</TableCell>
+                          <TableCell className="w-[180px] truncate">{payment.cliente?.nombre}</TableCell>
+                          <TableCell className="w-[140px] truncate">{payment.plan?.nombre}</TableCell>
                           <TableCell className="w-[120px] text-center">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -435,7 +483,7 @@ export default function PagosPage() {
                                   <Edit className="mr-2 h-4 w-4" />
                                   Editar
                                 </DropdownMenuItem>
-                                <DeletePaymentDialog name={payment.monto.toString()} onDelete={() => handleEditPayment}>
+                                <DeletePaymentDialog name={payment.cliente.nombre} monto={payment.monto} loading={loading} onDelete={() => handleDeletePayment(payment.id!)}>
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onSelect={(e) => e.preventDefault()} // ⬅️ evita que el menú se cierre
@@ -443,21 +491,22 @@ export default function PagosPage() {
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Eliminar
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-green-600"
-                                    onSelect={(e) => e.preventDefault()} // ⬅️ evita que el menú se cierre
-                                  >
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      disabled={payment.estado !== "pagado" || isDownloading}
-                                      onClick={() => handleDownload(payment)}
-                                    >
-                                      <Download className="" />
-                                      Descargar
-                                    </Button>
-                                  </DropdownMenuItem>
                                 </DeletePaymentDialog>
+                                <DropdownMenuItem
+                                  className="text-green-600"
+                                  onSelect={(e) => e.preventDefault()} // ⬅️ evita que el menú se cierre
+                                >
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={payment.estado !== "pagado" || isDownloading}
+                                    onClick={() => handleDownload(payment)}
+                                  >
+                                    <Download className="" />
+                                    Descargar
+                                  </Button>
+                                </DropdownMenuItem>
+
                               </DropdownMenuContent>
                             </DropdownMenu>
 
@@ -473,6 +522,8 @@ export default function PagosPage() {
         </Card>
       </section>
       <PaymentForm
+        setLoading={setLoading}
+        loading={loading}
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleFormSubmit}

@@ -1,4 +1,6 @@
 "use client";
+
+import { useState } from "react";
 import {
     AlertDialog,
     AlertDialogContent,
@@ -13,24 +15,42 @@ import {
 export function DeletePaymentDialog({
     onDelete,
     children,
+    name,
+    monto,
+    loading
 }: {
     onDelete: () => void;
     children: React.ReactNode;
     name: string;
+    monto?: number;
+    loading?: boolean;
 }) {
+    const [open, setOpen] = useState(false);
+
     return (
-        <AlertDialog>
+        <AlertDialog open={open} onOpenChange={setOpen}>
+            <div onClick={() => setOpen(true)}>
                 {children}
+            </div>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Esta acción eliminará el pago permanentemente.
+                        Esta acción eliminará el pago de el cliente {name} de ${monto} permanentemente.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={onDelete}>Eliminar</AlertDialogAction>
+                    <AlertDialogAction 
+                        onClick={() => {
+                            onDelete();
+                            setOpen(false);
+                        }}
+                        className="bg-red-600 hover:bg-red-700"
+                        disabled={loading}
+                    >
+                        Eliminar
+                    </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

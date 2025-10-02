@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
+import { Cliente, IFacturacion, Plan } from '@/types/IFacturacionPage'
+import { toast } from "sonner"
 // Tipos para el formulario de pagos
 interface PaymentFormData {
   id?: number
@@ -15,27 +16,6 @@ interface PaymentFormData {
   monto: number
   estado: "pagado" | "pendiente" | "fallido"
   fecha: string
-  descripcion?: string
-}
-
-interface Cliente {
-  id: number
-  nombre_completo: string
-}
-
-interface Plan {
-  id: number
-  nombre_plan: string
-  precio: number
-}
-
-interface IFacturacion {
-  id: number
-  fecha: string
-  monto: number
-  estado: "pagado" | "pendiente" | "fallido" | string
-  cliente: Cliente
-  plan: Plan
 }
 
 interface PaymentFormProps {
@@ -45,9 +25,11 @@ interface PaymentFormProps {
   editingPayment: IFacturacion | null
   clients: Cliente[]
   plans: Plan[]
+  loading?: boolean
+  setLoading: (loading: boolean) => void
 }
 
-export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients, plans }: PaymentFormProps) {
+export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients, plans, loading, setLoading }: PaymentFormProps) {
   const [formData, setFormData] = useState<Partial<PaymentFormData>>({
     estado: "pendiente",
     fecha: new Date().toISOString().split('T')[0], // Fecha actual por defecto
@@ -62,7 +44,6 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
         monto: editingPayment.monto,
         estado: editingPayment.estado as "pagado" | "pendiente" | "fallido",
         fecha: editingPayment.fecha.split('T')[0], // Convertir a formato YYYY-MM-DD
-        descripcion: "",
       })
     } else {
       // Reset form para nuevo pago
@@ -72,7 +53,6 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
         monto: 0,
         cliente_id: undefined,
         plan_id: undefined,
-        descripcion: "",
       })
     }
   }, [editingPayment, isOpen])
@@ -80,8 +60,8 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
   // Actualizar monto cuando se selecciona un plan
   const handlePlanChange = (planId: string) => {
     const selectedPlan = plans.find(plan => plan.id === Number.parseInt(planId))
-    setFormData({ 
-      ...formData, 
+    setFormData({
+      ...formData,
       plan_id: Number.parseInt(planId),
       monto: selectedPlan?.precio || 0
     })
@@ -89,6 +69,7 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
 
   const handleSubmit = () => {
     // Validación
+    setLoading(true)
     const requiredFields = ['cliente_id', 'plan_id', 'monto', 'estado', 'fecha']
     const isValidForm = requiredFields.every(field => {
       const value = formData[field as keyof PaymentFormData]
@@ -102,10 +83,10 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
         const value = formData[field as keyof PaymentFormData]
         return value === undefined || value === null || value === ""
       })
-      
+
       if (formData.monto! <= 0) missingFields.push('monto válido')
-      
-      alert(`Por favor completa todos los campos requeridos: ${missingFields.join(', ')}`)
+
+      toast.warning(`Por favor completa todos los campos requeridos: ${missingFields.join(', ')}`, { position: "top-center" });
     }
   }
 
@@ -117,9 +98,9 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
       monto: 0,
       cliente_id: undefined,
       plan_id: undefined,
-      descripcion: "",
     })
     onClose()
+    setLoading(false)
   }
 
   return (
@@ -144,7 +125,7 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
               <SelectContent>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id.toString()}>
-                    {client.nombre_completo}
+                    {client.nombre}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -216,7 +197,7 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
           <Button variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
+          <Button onClick={handleSubmit} disabled={loading} className="bg-green-600 hover:bg-green-700">
             {editingPayment ? "Actualizar" : "Crear"}
           </Button>
         </div>

@@ -70,6 +70,7 @@ export default function Dashboard() {
     const [users, setUsers] = useState<SystemUser[]>([])
     const [plans, setPlans] = useState<Plan[]>([])
     const [loading, setLoading] = useState<boolean>(true) // Cambiar a true inicialmente
+    const [loadingForm, setLoadingForm] = useState<boolean>(false)
 
 
     useEffect(() => {
@@ -110,86 +111,106 @@ export default function Dashboard() {
     }
 
     const handleSubmitClient = async (clientData: Partial<Client>) => {
+
         if (editingClient) {
-            type ClientValue = Client[keyof Client];
-            const updatedFields: Partial<Record<keyof Client, ClientValue>> = {};
 
-            for (const key in clientData) {
-                const typedKey = key as keyof Client;
+            try {
+                type ClientValue = Client[keyof Client];
+                const updatedFields: Partial<Record<keyof Client, ClientValue>> = {};
 
-                const newValue = clientData[typedKey];
-                if (newValue !== undefined && newValue !== editingClient[typedKey]) {
-                    updatedFields[typedKey] = newValue;
+                for (const key in clientData) {
+                    const typedKey = key as keyof Client;
+
+                    const newValue = clientData[typedKey];
+                    if (newValue !== undefined && newValue !== editingClient[typedKey]) {
+                        updatedFields[typedKey] = newValue;
+                    }
                 }
-            }
 
-            if (Object.keys(updatedFields).length === 0) {
-                console.log('No changes detected, skipping update')
-                toast.warning('No se detectaron cambios para actualizar')
-                return
-            }
+                if (Object.keys(updatedFields).length === 0) {
+                    console.log('No changes detected, skipping update')
+                    toast.warning('No se detectaron cambios para actualizar', { position: 'top-center' })
+                    return
+                }
 
-            const res = await fetch('/api/admin/clientes', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: editingClient.id,
-                    ...updatedFields
+                const res = await fetch('/api/admin/clientes', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: editingClient.id,
+                        ...updatedFields
+                    })
                 })
-            })
-            if (res.status !== 200) {
-                const errorData = await res.json()
-                toast.error('Error al actualizar cliente')
-                console.error('Error updating client:', errorData)
-                return
-            }
-            setClients(clients.map((client) => (client.id === editingClient.id ? { ...client, ...clientData } : client)))
+                if (res.status !== 200) {
+                    const errorData = await res.json()
+                    toast.error('Error al actualizar cliente', { position: 'top-center' })
+                    console.error('Error updating client:', errorData)
+                    return
+                }
+                setClients(clients.map((client) => (client.id === editingClient.id ? { ...client, ...clientData } : client)))
 
-            toast.success('Cliente actualizado correctamente')
-            setEditingClient(null)
-            handleCloseClientForm()
+                toast.success('Cliente actualizado correctamente', { position: 'top-center' })
+                setEditingClient(null)
+                handleCloseClientForm()
+            } catch (error) {
+                toast.error('Error al actualizar cliente', { position: 'top-center' })
+            }
+
         } else {
-            const res = await fetch('/api/admin/clientes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(clientData)
-            })
+            try {
+                const res = await fetch('/api/admin/clientes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(clientData)
+                })
 
-            if (res.status !== 201) {
-                const errorData = await res.json()
-                toast.error('Error al crear cliente')
-                console.error('Error creating client:', errorData)
-                return
+                if (res.status !== 201) {
+                    const errorData = await res.json()
+                    toast.error('Error al crear cliente', { position: 'top-center' })
+                    console.error('Error creating client:', errorData)
+                    return
+                }
+                const data = await res.json()
+                // Create new client
+                const newClient: Client = {
+                    id: data.id ?? 0,
+                    nombre: clientData.nombre!,
+                    telefono: clientData.telefono!,
+                    mensajes_disponibles: clientData.mensajes_disponibles || 0,
+                    email: clientData.email!,
+                    plan_id: clientData.plan_id!,
+                }
+                setClients([...clients, newClient].sort((a, b) => a.id - b.id))
+                toast.success('Cliente creado correctamente', { position: 'top-center' })
+                handleCloseClientForm();
+            } catch (error) {
+                toast.error('Error al crear cliente', { position: 'top-center' })
             }
-            const data = await res.json()
-            // Create new client
-            const newClient: Client = {
-                id: data.id ?? 0,
-                nombre_completo: clientData.nombre_completo!,
-                telefono: clientData.telefono!,
-                cantidad_mensajes: clientData.cantidad_mensajes || 0,
-                email: clientData.email!,
-                id_plan: clientData.id_plan!,
-            }
-            setClients([...clients, newClient].sort((a, b) => a.id - b.id))
-            toast.success('Cliente creado correctamente')
-            handleCloseClientForm();
+
         }
+        setLoadingForm(false);
     }
 
     const handleDeleteClient = async (id: number) => {
-        const res = await fetch(`/api/admin/clientes?id=${id}`, {
-            method: 'DELETE',
-        })
-        if (res.status !== 200) {
-            const errorData = await res.json()
-            toast.error('Error al eliminar cliente')
-            console.error('Error deleting client:', errorData)
-            return
+        setLoadingForm(true);
+        try {
+            const res = await fetch(`/api/admin/clientes?id=${id}`, {
+                method: 'DELETE',
+            })
+            if (res.status !== 200) {
+                const errorData = await res.json()
+                toast.error('Error al eliminar cliente', { position: 'top-center' })
+                console.error('Error deleting client:', errorData)
+                return
+            }
+            setClients(clients.filter((client) => client.id !== id))
+            setUsers(users.filter((user) => user.id_cliente !== id))
+            toast.success('Cliente eliminado correctamente', { position: 'top-center' })
+        } catch (error) {
+            toast.error('Error al eliminar cliente', { position: 'top-center' })
+        } finally {
+            setLoadingForm(false);
         }
-        setClients(clients.filter((client) => client.id !== id))
-        setUsers(users.filter((user) => user.id_cliente !== id))
-        toast.success('Cliente eliminado correctamente')
     }
 
     // User handlers
@@ -221,7 +242,7 @@ export default function Dashboard() {
             }
             if (Object.keys(updatedFields).length === 0) {
                 console.log('No changes detected, skipping update')
-                toast.warning('No se detectaron cambios para actualizar')
+                toast.warning('No se detectaron cambios para actualizar', { position: 'top-center' })
                 return
             }
             const res = await fetch('/api/admin/usuarios', {
@@ -234,15 +255,14 @@ export default function Dashboard() {
             })
             if (res.status !== 200) {
                 const errorData = await res.json();
-                toast.error('Error al actualizar usuario');
+                toast.error('Error al actualizar usuario', { position: 'top-center' });
                 console.error('Error updating client:', errorData);
                 return
             }
             setUsers(users.map((user) => (user.id === editingUser.id ? { ...user, ...userData } : user)))
-            toast.success('Usuario actualizado correctamente')
+            toast.success('Usuario actualizado correctamente', { position: 'top-center' })
             setEditingUser(null)
             handleCloseUserForm()
-
         } else {
             // Create new user
             const res = await fetch('/api/admin/usuarios', {
@@ -250,13 +270,13 @@ export default function Dashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
             })
-            if(res.status === 409) {
-                toast.error('El email ya está en uso');
+            if (res.status === 409) {
+                toast.error('El email ya está en uso', { position: 'top-center' });
                 return
             }
             if (res.status !== 201) {
                 const errorData = await res.json();
-                toast.error('Error al crear usuario');
+                toast.error('Error al crear usuario', { position: 'top-center' });
                 console.error('Error creating user:', errorData);
                 return
             }
@@ -272,24 +292,27 @@ export default function Dashboard() {
                 id_rol: userData.id_rol!,
             }
             setUsers([...users, newUser].sort((a, b) => a.id - b.id))
-            toast.success('Usuario creado correctamente')
+            toast.success('Usuario creado correctamente', { position: 'top-center' })
             handleCloseUserForm()
         }
+        setLoadingForm(false);
 
     }
 
     const handleDeleteUser = async (id: number) => {
+        setLoadingForm(true);
         const res = await fetch(`/api/admin/usuarios?id=${id}`, {
             method: 'DELETE',
         })
         if (res.status !== 200) {
             const errorData = res.json()
-            toast.error('Error al eliminar usuario')
+            toast.error('Error al eliminar usuario', { position: 'top-center' })
             console.log('Error deleting user:', errorData)
             return
         }
         setUsers(users.filter((user) => user.id !== id))
-        toast.success('Usuario eliminado correctamente')
+        toast.success('Usuario eliminado correctamente', { position: 'top-center' })
+        setLoadingForm(false);
     }
 
     return (
@@ -315,6 +338,8 @@ export default function Dashboard() {
 
                                     <TabsContent value="clients">
                                         <ClientsTab
+                                            loading={loadingForm}
+                                            setLoading={setLoadingForm}
                                             clients={clients}
                                             plans={plans}
                                             isFormOpen={isClientFormOpen}
@@ -328,6 +353,8 @@ export default function Dashboard() {
 
                                     <TabsContent value="users">
                                         <UsersTab
+                                            loading={loadingForm}
+                                            setLoading={setLoadingForm}
                                             users={users}
                                             clients={clients}
                                             roles={roles}

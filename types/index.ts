@@ -1,10 +1,10 @@
 export interface Client {
   id: number
-  nombre_completo: string
+  nombre: string
   telefono: string
-  cantidad_mensajes: number
+  mensajes_disponibles: number
   email: string
-  id_plan: number
+  plan_id: number
 }
 
 export interface Plan {

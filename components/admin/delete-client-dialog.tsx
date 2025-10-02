@@ -14,11 +14,13 @@ import {
 export function DeleteClientDialog({
     onDelete,
     children,
-    name
+    name,
+    loading
 }: {
     onDelete: () => void;
     children: React.ReactNode;
     name: string;
+    loading: boolean;
 }) {
     return (
         <AlertDialog>
@@ -34,7 +36,7 @@ export function DeleteClientDialog({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={onDelete}>Eliminar</AlertDialogAction>
+                    <AlertDialogAction onClick={onDelete} disabled={loading}>Eliminar</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

@@ -30,14 +30,14 @@ export async function POST(request: Request) {
         return new Response("Unauthorized", { status: 403 });
     }
     const dataReq = await request.json();
-    if( !dataReq.nombre_completo || !dataReq.telefono || !dataReq.email || !dataReq.id_plan || !dataReq.cantidad_mensajes) return new Response("Missing data", { status: 400 });
+    if( !dataReq.nombre || !dataReq.telefono || !dataReq.email || !dataReq.plan_id || !dataReq.mensajes_disponibles) return new Response("Missing data", { status: 400 });
 
     const {data,error} = await supabase.from('waichatt_clientes').insert({
-        nombre_completo: dataReq.nombre_completo,
+        nombre: dataReq.nombre,
         telefono: dataReq.telefono,
         email: dataReq.email,
-        id_planes: dataReq.id_plan,
-        cantidad_mensajes: dataReq.cantidad_mensajes
+        plan_id: dataReq.plan_id,
+        mensajes_disponibles: dataReq.mensajes_disponibles
     }).select();
 
     if(error) {

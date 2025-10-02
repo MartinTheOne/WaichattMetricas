@@ -16,6 +16,8 @@ interface ClientsTabProps {
   onCloseForm: () => void
   onSubmit: (client: Partial<Client>) => void
   onDelete: (id: number) => void
+  loading: boolean
+  setLoading: (loading: boolean) => void
 }
 
 export function ClientsTab({
@@ -27,6 +29,8 @@ export function ClientsTab({
   onCloseForm,
   onSubmit,
   onDelete,
+  loading,
+  setLoading
 }: ClientsTabProps) {
   return (
     // Removido flex-1 flex flex-col min-h-0 - solo mantenemos space-y-4
@@ -49,10 +53,12 @@ export function ClientsTab({
         </CardHeader>
         {/* Simplificado a solo p-0 */}
         <CardContent className="p-0">
-          <ClientsTable clients={clients} plans={plans} onEdit={onOpenForm} onDelete={onDelete} />
+          <ClientsTable loading={loading} clients={clients} plans={plans} onEdit={onOpenForm} onDelete={onDelete} />
         </CardContent>
       </Card>
       <ClientForm
+        setLoading={setLoading}
+        loading={loading}
         isOpen={isFormOpen}
         onClose={onCloseForm}
         onSubmit={onSubmit}

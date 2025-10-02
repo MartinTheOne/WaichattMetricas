@@ -15,11 +15,13 @@ interface UserFormProps {
   editingUser: SystemUser | null
   clients: Client[]
   roles: Role[]
+  loading?: boolean
+  setLoading: (loading: boolean) => void
 }
 
-export function UserForm({ isOpen, onClose, onSubmit, editingUser, clients, roles }: UserFormProps) {
-  const [formData, setFormData] = useState<Partial<SystemUser>>({ 
-    url_base: "https://app.waichatt.com/api/v2/accounts/id_cuenta" 
+export function UserForm({ isOpen, onClose, onSubmit, editingUser, clients, roles, loading, setLoading }: UserFormProps) {
+  const [formData, setFormData] = useState<Partial<SystemUser>>({
+    url_base: "https://app.waichatt.com/api/v2/accounts/id_cuenta"
   })
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export function UserForm({ isOpen, onClose, onSubmit, editingUser, clients, role
       })
     } else {
       // Reset form for new user
-      setFormData({ 
+      setFormData({
         url_base: "https://app.waichatt.com/api/v2/accounts/id_cuenta",
         password: "",
         email: "",
@@ -49,6 +51,7 @@ export function UserForm({ isOpen, onClose, onSubmit, editingUser, clients, role
   }, [editingUser, isOpen]) // Agregué isOpen como dependencia
 
   const handleSubmit = () => {
+    setLoading(true);
     // Validación mejorada
     const requiredFields = ['email', 'nombre', 'id_cliente', 'id_rol', 'url_base', 'api_access_token']
     const isValidForm = requiredFields.every(field => {
@@ -61,16 +64,16 @@ export function UserForm({ isOpen, onClose, onSubmit, editingUser, clients, role
 
     if (isValidForm && isPasswordValid) {
       onSubmit(formData)
-      
+
     } else {
       // Mostrar qué campos faltan
       const missingFields = requiredFields.filter(field => {
         const value = formData[field as keyof SystemUser]
         return value === undefined || value === null || value === ""
       })
-      
+
       if (!isPasswordValid) missingFields.push('password')
-      
+
       console.error('Campos requeridos faltantes:', missingFields)
       alert(`Por favor completa todos los campos requeridos: ${missingFields.join(', ')}`)
     }
@@ -78,7 +81,7 @@ export function UserForm({ isOpen, onClose, onSubmit, editingUser, clients, role
 
   const handleClose = () => {
     // Reset form data
-    setFormData({ 
+    setFormData({
       url_base: "https://app.waichatt.com/api/v2/accounts/id_cuenta",
       password: "",
       email: "",
@@ -88,6 +91,7 @@ export function UserForm({ isOpen, onClose, onSubmit, editingUser, clients, role
       id_rol: undefined
     })
     onClose()
+    setLoading(false)
   }
 
   return (
@@ -164,7 +168,7 @@ export function UserForm({ isOpen, onClose, onSubmit, editingUser, clients, role
               <SelectContent>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id.toString()}>
-                    {client.nombre_completo}
+                    {client.nombre}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -193,7 +197,7 @@ export function UserForm({ isOpen, onClose, onSubmit, editingUser, clients, role
           <Button variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
+          <Button onClick={handleSubmit} disabled={loading} className="bg-green-600 hover:bg-green-700">
             {editingUser ? "Actualizar" : "Crear"}
           </Button>
         </div>

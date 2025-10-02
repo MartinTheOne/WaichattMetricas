@@ -1,12 +1,12 @@
 export type Cliente = {
   id: number
-  nombre_completo: string
+  nombre: string
   email?: string
 }
 
 export type Plan = {
   id: number
-  nombre_plan: string
+  nombre: string
   precio: number
 }
 

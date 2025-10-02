@@ -9,7 +9,7 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ clients, users, plans }: StatsCardsProps) {
-  const totalMessages = clients.reduce((sum, client) => sum + client.cantidad_mensajes, 0)
+  const totalMessages = clients.reduce((sum, client) => sum + client.mensajes_disponibles, 0)
 
   const stats = [
     {

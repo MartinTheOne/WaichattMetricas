@@ -1,6 +1,6 @@
 "use client"
 
-import { useState,useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -14,20 +14,22 @@ interface ClientFormProps {
   onSubmit: (client: Partial<Client>) => void
   editingClient: Client | null
   plans: Plan[]
+  loading?: boolean
+  setLoading: (loading: boolean) => void
 }
 
-export function ClientForm({ isOpen, onClose, onSubmit, editingClient, plans }: ClientFormProps) {
+export function ClientForm({ isOpen, onClose, onSubmit, editingClient, plans, loading, setLoading }: ClientFormProps) {
   const [formData, setFormData] = useState<Partial<Client>>(editingClient || {})
 
   useEffect(() => {
     if (editingClient) {
       setFormData({
         id: editingClient.id,
-        nombre_completo: editingClient.nombre_completo,
+        nombre: editingClient.nombre,
         telefono: editingClient.telefono,
         email: editingClient.email,
-        cantidad_mensajes: editingClient.cantidad_mensajes,
-        id_plan: editingClient.id_plan
+        mensajes_disponibles: editingClient.mensajes_disponibles,
+        plan_id: editingClient.plan_id
       })
     } else {
       setFormData({})
@@ -35,14 +37,16 @@ export function ClientForm({ isOpen, onClose, onSubmit, editingClient, plans }: 
   }, [editingClient])
 
   const handleSubmit = () => {
-    if (formData.nombre_completo?.trim() && formData.telefono?.trim() && formData.email?.trim() && formData.id_plan) {
+    setLoading(true);
+    if (formData.nombre?.trim() && formData.telefono?.trim() && formData.email?.trim() && formData.plan_id) {
       onSubmit(formData)
     }
   }
 
   const handleClose = () => {
-    setFormData({})
-    onClose()
+    setFormData({});
+    setLoading(false);
+    onClose();
   }
 
   return (
@@ -56,11 +60,11 @@ export function ClientForm({ isOpen, onClose, onSubmit, editingClient, plans }: 
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="nombre_completo">Nombre Completo</Label>
+            <Label htmlFor="nombre">Nombre Completo</Label>
             <Input
-              id="nombre_completo"
-              value={formData.nombre_completo || ""}
-              onChange={(e) => setFormData({ ...formData, nombre_completo: e.target.value })}
+              id="nombre"
+              value={formData.nombre || ""}
+              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
               placeholder="Ingresa el nombre completo"
             />
           </div>
@@ -84,20 +88,20 @@ export function ClientForm({ isOpen, onClose, onSubmit, editingClient, plans }: 
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="cantidad_mensajes">Cantidad de Mensajes</Label>
+            <Label htmlFor="mensajes_disponibles">Cantidad de Mensajes</Label>
             <Input
-              id="cantidad_mensajes"
+              id="mensajes_disponibles"
               type="number"
-              value={formData.cantidad_mensajes || ""}
-              onChange={(e) => setFormData({ ...formData, cantidad_mensajes: Number.parseInt(e.target.value) || 0 })}
+              value={formData.mensajes_disponibles || ""}
+              onChange={(e) => setFormData({ ...formData, mensajes_disponibles: Number.parseInt(e.target.value) || 0 })}
               placeholder="0"
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="id_plan">Plan</Label>
+            <Label htmlFor="plan_id">Plan</Label>
             <Select
-              value={formData.id_plan?.toString() || ""}
-              onValueChange={(value) => setFormData({ ...formData, id_plan: Number.parseInt(value) })}
+              value={formData.plan_id?.toString() || ""}
+              onValueChange={(value) => setFormData({ ...formData, plan_id: Number.parseInt(value) })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona un plan" />
@@ -116,7 +120,7 @@ export function ClientForm({ isOpen, onClose, onSubmit, editingClient, plans }: 
           <Button variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
+          <Button onClick={handleSubmit} disabled={loading} className="bg-green-600 hover:bg-green-700">
             {editingClient ? "Actualizar" : "Crear"}
           </Button>
         </div>

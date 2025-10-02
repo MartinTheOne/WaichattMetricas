@@ -17,6 +17,8 @@ interface UsersTabProps {
   onCloseForm: () => void
   onSubmit: (user: Partial<SystemUser>) => void
   onDelete: (id: number) => void
+  loading?: boolean
+  setLoading: (loading: boolean) => void
 }
 
 export function UsersTab({
@@ -29,6 +31,8 @@ export function UsersTab({
   onCloseForm,
   onSubmit,
   onDelete,
+  loading,
+  setLoading
 }: UsersTabProps) {
   return (
     <div className="space-y-4">
@@ -55,6 +59,8 @@ export function UsersTab({
         </Card>
       </div>
       <UserForm
+        setLoading={setLoading}
+        loading={loading}
         isOpen={isFormOpen}
         onClose={onCloseForm}
         onSubmit={onSubmit}
