@@ -1,6 +1,6 @@
 "use client"
 
-import { MessageSquare, User, BarChart3, CreditCard, LogOut, Receipt } from "lucide-react"
+import { MessageSquare, User, BarChart3, CreditCard, LogOut, Receipt, Wallet } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
@@ -40,6 +40,11 @@ const itemsAdmin = [
     title: "Dashboard",
     url: "/dashboard",
     icon: BarChart3,
+  },
+  {
+    title: "Finanzas",
+    url: "/admin/finanzas",
+    icon: Wallet,
   },
   {
     title: "Clientes",

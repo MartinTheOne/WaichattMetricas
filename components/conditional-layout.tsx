@@ -14,7 +14,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname()
 
   // Páginas que  necesitan sidebar
-  const publicPages = ["/dashboard", "/pagos", "/admin/clientes", "/admin/facturacion", "/admin/dashboard"]
+  const publicPages = ["/dashboard", "/pagos", "/admin/clientes", "/admin/facturacion", "/admin/dashboard","/admin/finanzas"]
   const isPublicPage = publicPages.includes(pathname)
 
   // Si es una página pública o el usuario no está autenticado, mostrar sin sidebar

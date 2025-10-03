@@ -1,7 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
 import { compare } from 'bcryptjs';
 import {UserDB, User} from '../types/IGetUserByEmail'
-
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.DATABASE_URL ?? '',
