@@ -34,6 +34,7 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
     estado: "pendiente",
     fecha: new Date().toISOString().split('T')[0], // Fecha actual por defecto
   })
+  const [moneda, setMoneda] = useState("USD")
 
   useEffect(() => {
     if (editingPayment) {
@@ -66,8 +67,8 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
       monto: selectedPlan?.precio || 0
     })
   }
-
-  const handleSubmit = () => {
+console.log(moneda)
+  const handleSubmit = async () => {
     // Validación
     setLoading(true)
     const requiredFields = ['cliente_id', 'plan_id', 'monto', 'estado', 'fecha']
@@ -76,7 +77,13 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
       return value !== undefined && value !== null && value !== ""
     })
 
-    if (isValidForm && formData.monto! > 0) {
+    if (isValidForm && formData.monto! > 0 && moneda) {
+      if (moneda === "USD") {
+        const response = await fetch("https://dolarapi.com/v1/dolares/blue")
+        const data = await response.json();
+        const montoTotal = data.venta * (formData.monto||0)
+        formData.monto=montoTotal
+      }
       onSubmit(formData)
     } else {
       const missingFields = requiredFields.filter(field => {
@@ -87,6 +94,7 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
       if (formData.monto! <= 0) missingFields.push('monto válido')
 
       toast.warning(`Por favor completa todos los campos requeridos: ${missingFields.join(', ')}`, { position: "top-center" });
+      setLoading(false)
     }
   }
 
@@ -99,6 +107,7 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
       cliente_id: undefined,
       plan_id: undefined,
     })
+    setMoneda("ARS")
     onClose()
     setLoading(false)
   }
@@ -151,18 +160,37 @@ export function PaymentForm({ isOpen, onClose, onSubmit, editingPayment, clients
             </Select>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="monto">Monto *</Label>
-            <Input
-              id="monto"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.monto || ""}
-              onChange={(e) => setFormData({ ...formData, monto: Number.parseFloat(e.target.value) })}
-              placeholder="0.00"
-              required
-            />
+          <div className="flex gap-2">
+            <div>
+
+              <Label htmlFor="monto">Monto *</Label>
+              <Input
+                id="monto"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.monto || ""}
+                onChange={(e) => setFormData({ ...formData, monto: Number.parseFloat(e.target.value) })}
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div>
+
+              <Label htmlFor="moneda">Moneda</Label>
+              <Select
+                value={moneda}
+                onValueChange={(value) => setMoneda(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ARS">ARS</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid gap-2">

@@ -1,6 +1,6 @@
 "use client"
 
-import { MessageSquare, User, BarChart3, CreditCard, LogOut, Receipt, Wallet } from "lucide-react"
+import { MessageSquare, User, BarChart3, CreditCard, LogOut, Receipt, Wallet,ArrowDownCircle,ArrowUpCircle } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
@@ -42,19 +42,24 @@ const itemsAdmin = [
     icon: BarChart3,
   },
   {
-    title: "Finanzas",
-    url: "/admin/finanzas",
-    icon: Wallet,
-  },
-  {
     title: "Clientes",
     url: "/admin/clientes",
     icon: User,
   },
   {
-    title: "Facturación",
-    url: "/admin/facturacion",
-    icon: Receipt,
+    title: "Ingresos",
+    url: "/admin/ingresos",
+    icon: ArrowDownCircle,
+  },
+  {
+    title: "Egresos",
+    url: "/admin/egresos",
+    icon: ArrowUpCircle,
+  },
+  {
+    title: "Cuenta Bancaria",
+    url: "/admin/cuenta-bancaria",
+    icon: Wallet,
   },
 ]
 

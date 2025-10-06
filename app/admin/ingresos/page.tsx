@@ -38,12 +38,11 @@ const formatDate = (dateString: string) => {
   })
 }
 const formatAmount = (amount: number) => {
-  return new Intl.NumberFormat("es-ES", {
+  return new Intl.NumberFormat("es-AR", {
     style: "currency",
-    currency: "USD",
+    currency: "ARS",
   }).format(amount)
 }
-
 // Skeleton de tarjetas de resumen
 const SummaryCardSkeleton = () => (
   <Card aria-busy="true" aria-live="polite">
@@ -275,9 +274,7 @@ export default function PagosPage() {
   if (error) {
     return (
       <main className="min-h-screen p-4 md:p-6 lg:p-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Pagos</h2>
-        </div>
+
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-red-600">
@@ -294,11 +291,7 @@ export default function PagosPage() {
 
   return (
     <main className="h-screen flex flex-col p-4 md:p-6 lg:p-8 gap-4 overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between">
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Pagos</h2>
 
-      </header>
 
       {/* Resumen + Buscar */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">

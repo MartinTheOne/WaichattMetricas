@@ -9,12 +9,11 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ clients, users, plans }: StatsCardsProps) {
-  const totalMessages = clients.reduce((sum, client) => sum + client.mensajes_disponibles, 0)
-
+  const clientesActivos=clients.filter(c=>(c as any).estado === true).length
   const stats = [
     {
       title: "Total Clientes",
-      value: clients.length,
+      value: clientesActivos,
       description: "Clientes activos",
       icon: Users,
     },
@@ -25,12 +24,6 @@ export function StatsCards({ clients, users, plans }: StatsCardsProps) {
       icon: UserIcon,
     },
     {
-      title: "Mensajes Totales",
-      value: totalMessages.toLocaleString(),
-      description: "Mensajes enviados",
-      icon: MessageSquare,
-    },
-    {
       title: "Planes Activos",
       value: plans.length,
       description: "Planes disponibles",
@@ -39,7 +32,7 @@ export function StatsCards({ clients, users, plans }: StatsCardsProps) {
   ]
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 w-full sm:gap-4 md:gap-6 mb-6 sm:mb-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 w-full sm:gap-4 md:gap-6 mb-6 sm:mb-8">
       {stats.map((stat, index) => {
         const Icon = stat.icon
         return (

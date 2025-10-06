@@ -5,6 +5,7 @@ export interface Client {
   mensajes_disponibles: number
   email: string
   plan_id: number
+  estado: boolean
 }
 
 export interface Plan {

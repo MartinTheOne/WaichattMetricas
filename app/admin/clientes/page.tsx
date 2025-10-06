@@ -179,6 +179,7 @@ export default function Dashboard() {
                     mensajes_disponibles: clientData.mensajes_disponibles || 0,
                     email: clientData.email!,
                     plan_id: clientData.plan_id!,
+                    estado: clientData.estado!,
                 }
                 setClients([...clients, newClient].sort((a, b) => a.id - b.id))
                 toast.success('Cliente creado correctamente', { position: 'top-center' })

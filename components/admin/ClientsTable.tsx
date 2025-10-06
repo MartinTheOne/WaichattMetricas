@@ -37,6 +37,7 @@ export function ClientsTable({ clients, plans, onEdit, onDelete, loading }: Clie
                 <TableHead className="w-[200px] font-semibold">Email</TableHead>
                 <TableHead className="w-[100px] font-semibold">Mensajes</TableHead>
                 <TableHead className="w-[150px] font-semibold">Plan</TableHead>
+                <TableHead className="w-[150px] font-semibold">Estado</TableHead>
                 <TableHead className="w-[100px] font-semibold rounded-tr-none">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -66,6 +67,9 @@ export function ClientsTable({ clients, plans, onEdit, onDelete, loading }: Clie
                     </TableCell>
                     <TableCell className="w-[150px]">
                       <Badge className="bg-green-100 text-green-800">{getPlanName(client.plan_id)}</Badge>
+                    </TableCell>
+                    <TableCell className="w-[150px]">
+                      <Badge className={`${client.estado?"bg-green-800 hover:bg-green-600":"bg-gray-400 hover:bg-gray-500"}`}>{client.estado?"Activo":"Inactivo"}</Badge>
                     </TableCell>
                     <TableCell className="w-[100px]">
                       <DropdownMenu>
@@ -149,12 +153,16 @@ export function ClientsTable({ clients, plans, onEdit, onDelete, loading }: Clie
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Mensajes</span>
-                  <Badge variant="secondary">{client.mensajes_disponibles.toLocaleString()}</Badge>
+                  <Badge variant="secondary" className={client.mensajes_disponibles<0?`bg-red-500 text-gray-200 hover:bg-red-600`: "bg-green-500 text-gray-200 hover:bg-green-600"}>{client.mensajes_disponibles.toLocaleString()}</Badge>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Plan</span>
                   <Badge className="bg-green-100 text-green-800">{getPlanName(client.plan_id)}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Estado</span>
+                  <Badge className={`${client.estado?"bg-green-800 hover:bg-green-600":"bg-gray-400 hover:bg-gray-500"}`}>{client.estado?"Activo":"Inactivo"}</Badge>
                 </div>
               </CardContent>
             </Card>

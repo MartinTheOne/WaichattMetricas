@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { EgresosTab } from "@/components/finanzas/egresos-tab"
 import { ServiciosTab } from "@/components/finanzas/servicios-tab"
-import { TrendingUp, TrendingDown, DollarSign } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { TrendingUp, TrendingDown, DollarSign, SearchIcon } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface Balance {
@@ -48,6 +49,7 @@ export default function FinanzasPage() {
   const [servicios, setServicios] = useState<Servicio[]>([])
   const [egresos, setEgresos] = useState<Egreso[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
 
   const [filters, setFilters] = useState<Filters>({
     servicio_id: "all",
@@ -132,18 +134,17 @@ export default function FinanzasPage() {
     }
   }, [filteredEgresos, balance.totalIngresos])
 
+
+
+
   return (
     <div className="min-h-screen bg-muted/30">
       <main className="p-8">
         <div className="max-w-7xl mx-auto space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Finanzas</h1>
-            <p className="text-muted-foreground">Gestiona tus ingresos, egresos y servicios</p>
-          </div>
 
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
+              {[1].map((i) => (
                 <Card key={i}>
                   <CardHeader className="pb-2">
                     <Skeleton className="h-4 w-24" />
@@ -157,18 +158,6 @@ export default function FinanzasPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Ingresos</CardTitle>
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-foreground">
-                    ${filteredBalance.totalIngresos.toLocaleString("es-AR")}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Pagos recibidos</p>
-                </CardContent>
-              </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -182,29 +171,12 @@ export default function FinanzasPage() {
                   <p className="text-xs text-muted-foreground mt-1">Gastos registrados</p>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Balance</CardTitle>
-                  <DollarSign className="w-4 h-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div
-                    className={`text-2xl font-bold ${filteredBalance.balance >= 0 ? "text-emerald-600" : "text-red-600"}`}
-                  >
-                    ${filteredBalance.balance.toLocaleString("es-AR")}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {filteredBalance.balance >= 0 ? "Superávit" : "Déficit"}
-                  </p>
-                </CardContent>
-              </Card>
             </div>
           )}
 
           <Tabs defaultValue="egresos" className="space-y-6">
             <TabsList className="bg-white border border-border">
-              <TabsTrigger value="egresos">Finanzas</TabsTrigger>
+              <TabsTrigger value="egresos">Egresos</TabsTrigger>
               <TabsTrigger value="servicios">Servicios</TabsTrigger>
             </TabsList>
 
