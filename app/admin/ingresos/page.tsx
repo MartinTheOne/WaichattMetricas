@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { DollarSign, Download, SearchIcon, Edit, Trash2, Plus, MoreHorizontal } from 'lucide-react'
-import { PaymentForm } from "@/components/admin/paymentForm"
+import { PaymentForm } from "@/components/admin/ingresos/paymentForm"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,8 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { downloadInvoicePDF } from "@/components/download-invoice"
-import { DeletePaymentDialog } from "@/components/admin/delete-payments-dialog"
+import { downloadInvoicePDF } from "@/components/admin/ingresos/download-invoice"
+import { DeletePaymentDialog } from "@/components/admin/ingresos/delete-payments-dialog"
 import { Cliente, Plan, IFacturacion } from '@/types/IFacturacionPage'
 import { toast } from "sonner"
 

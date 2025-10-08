@@ -74,7 +74,7 @@ export default function LoginPage() {
         // Esperar a que la sesión se actualice antes de redirigir
         const updatedSession = await getSession()
         if (updatedSession) {
-          router.push("/dashboard")
+          router.push("/admin/clientes")
         }
       }
     } catch (error) {

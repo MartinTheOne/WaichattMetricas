@@ -13,7 +13,7 @@ import { Plus, Pencil, Trash2, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
-import { DeleteEgresoDialog } from "@/components/delete-egreso-dialog"
+import { DeleteEgresoDialog } from "@/components/admin/egresos/delete-egreso-dialog"
 
 interface Servicio {
   id: number

@@ -14,7 +14,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
-import { DeleteServicioDialog } from "@/components/delete-servicio-dialog"
+import { DeleteServicioDialog } from "@/components/admin/egresos/delete-servicio-dialog"
 
 interface Servicio {
   id: number

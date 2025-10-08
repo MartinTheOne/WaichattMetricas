@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Edit, Trash2, User, Mail, Building, KeyRound, Link, Hash } from 'lucide-react'
 import type { SystemUser, Client, Role } from "@/types/index"
-import { DeleteUserDialog } from "@/components/admin/delete-user-dialog" // Asegúrate de que la ruta sea correcta
+import { DeleteUserDialog } from "@/components/admin/usuarios/delete-user-dialog" // Asegúrate de que la ruta sea correcta
 
 interface UsersTableProps {
   users: SystemUser[]

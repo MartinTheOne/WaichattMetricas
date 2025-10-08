@@ -35,7 +35,7 @@ export default function cuentaBancaria() {
     }
 
     return (
-        <div className="min-h-screen bg-muted/30">
+        <div className="bg-muted/30">
             <main className="p-8">
 
                 <div className="max-w-7xl mx-auto space-y-8">

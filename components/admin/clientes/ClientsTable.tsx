@@ -5,21 +5,45 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Edit, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Edit, Trash2, DollarSign } from 'lucide-react'
 import type { Client, Plan } from "@/types/index"
-import { DeleteClientDialog } from "@/components/admin/delete-client-dialog"
+import { DeleteClientDialog } from "@/components/admin/clientes/delete-client-dialog"
 
 interface ClientsTableProps {
   clients: Client[]
   plans: Plan[]
   onEdit: (client: Client) => void
   onDelete: (id: number) => void
+  onGeneratePayment: (paymentData: {
+    fecha: string
+    monto: number
+    estado: string
+    cliente_id: number
+    plan_id: number
+  }) => void
   loading: boolean
 }
 
-export function ClientsTable({ clients, plans, onEdit, onDelete, loading }: ClientsTableProps) {
+export function ClientsTable({ clients, plans, onEdit, onDelete, onGeneratePayment, loading }: ClientsTableProps) {
   const getPlanName = (plan_id: number) => {
     return plans.find((plan) => plan.id === plan_id)?.nombre || "Plan no encontrado"
+  }
+
+  const getPlanPrice = (plan_id: number) => {
+    return plans.find((plan) => plan.id === plan_id)?.precio || 0
+  }
+
+  const handleGeneratePayment = (client: Client) => {
+    const today = new Date().toISOString().split('T')[0] // Formato YYYY-MM-DD
+    const planPrice = getPlanPrice(client.plan_id)
+
+    onGeneratePayment({
+      fecha: today,
+      monto: planPrice,
+      estado: "pagado",
+      cliente_id: client.id,
+      plan_id: client.plan_id
+    })
   }
 
   return (
@@ -63,13 +87,13 @@ export function ClientsTable({ clients, plans, onEdit, onDelete, loading }: Clie
                       {client.email}
                     </TableCell>
                     <TableCell className="w-[100px] ">
-                      <Badge variant="secondary" className={client.mensajes_disponibles<0?`bg-red-500 text-gray-200 hover:bg-red-600`: "bg-green-500 text-gray-200 hover:bg-green-600"}>{client.mensajes_disponibles.toLocaleString()}</Badge>
+                      <Badge variant="secondary" className={client.mensajes_disponibles < 0 ? `bg-red-500 text-gray-200 hover:bg-red-600` : "bg-green-500 text-gray-200 hover:bg-green-600"}>{client.mensajes_disponibles.toLocaleString()}</Badge>
                     </TableCell>
                     <TableCell className="w-[150px]">
                       <Badge className="bg-green-100 text-green-800">{getPlanName(client.plan_id)}</Badge>
                     </TableCell>
                     <TableCell className="w-[150px]">
-                      <Badge className={`${client.estado?"bg-green-800 hover:bg-green-600":"bg-gray-400 hover:bg-gray-500"}`}>{client.estado?"Activo":"Inactivo"}</Badge>
+                      <Badge className={`${client.estado ? "bg-green-800 hover:bg-green-600" : "bg-gray-400 hover:bg-gray-500"}`}>{client.estado ? "Activo" : "Inactivo"}</Badge>
                     </TableCell>
                     <TableCell className="w-[100px]">
                       <DropdownMenu>
@@ -80,6 +104,10 @@ export function ClientsTable({ clients, plans, onEdit, onDelete, loading }: Clie
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleGeneratePayment(client)}>
+                            <DollarSign className="mr-2 h-4 w-4" />
+                            Generar Pago
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => onEdit(client)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Editar
@@ -123,6 +151,10 @@ export function ClientsTable({ clients, plans, onEdit, onDelete, loading }: Clie
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleGeneratePayment(client)}>
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        Generar Pago
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onEdit(client)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
@@ -153,7 +185,7 @@ export function ClientsTable({ clients, plans, onEdit, onDelete, loading }: Clie
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Mensajes</span>
-                  <Badge variant="secondary" className={client.mensajes_disponibles<0?`bg-red-500 text-gray-200 hover:bg-red-600`: "bg-green-500 text-gray-200 hover:bg-green-600"}>{client.mensajes_disponibles.toLocaleString()}</Badge>
+                  <Badge variant="secondary" className={client.mensajes_disponibles < 0 ? `bg-red-500 text-gray-200 hover:bg-red-600` : "bg-green-500 text-gray-200 hover:bg-green-600"}>{client.mensajes_disponibles.toLocaleString()}</Badge>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -162,7 +194,7 @@ export function ClientsTable({ clients, plans, onEdit, onDelete, loading }: Clie
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Estado</span>
-                  <Badge className={`${client.estado?"bg-green-800 hover:bg-green-600":"bg-gray-400 hover:bg-gray-500"}`}>{client.estado?"Activo":"Inactivo"}</Badge>
+                  <Badge className={`${client.estado ? "bg-green-800 hover:bg-green-600" : "bg-gray-400 hover:bg-gray-500"}`}>{client.estado ? "Activo" : "Inactivo"}</Badge>
                 </div>
               </CardContent>
             </Card>

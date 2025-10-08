@@ -2,9 +2,10 @@
 import { ProtectedRouteAdmin } from "@/components/admin/protected-route-admin"
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { StatsCards } from "@/components/admin/StatsCards"
-import { ClientsTab } from "@/components/admin/ClientsTab"
-import { UsersTab } from "@/components/admin/UsersTab"
+import { StatsCards } from "@/components/admin/clientes/StatsCards"
+import { ClientsTab } from "@/components/admin/clientes/ClientsTab"
+import { UsersTab } from "@/components/admin/usuarios/UsersTab"
+import { PaymentLoadingDialog } from "@/components/admin/clientes/payment-loading-dialog"
 import type { Client, Plan, SystemUser } from "@/types/index"
 import { roles } from "@/data/mocuck"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -69,12 +70,15 @@ export default function Dashboard() {
     const [clients, setClients] = useState<Client[]>([])
     const [users, setUsers] = useState<SystemUser[]>([])
     const [plans, setPlans] = useState<Plan[]>([])
-    const [loading, setLoading] = useState<boolean>(true) // Cambiar a true inicialmente
+    const [loading, setLoading] = useState<boolean>(true)
     const [loadingForm, setLoadingForm] = useState<boolean>(false)
-
+    
+    // Estados para el dialog de pago
+    const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
+    const [paymentStatus, setPaymentStatus] = useState<'loading' | 'success' | 'error' | null>(null)
 
     useEffect(() => {
-        if (users.length > 0) return // Evitar recargar si ya hay usuarios
+        if (users.length > 0) return
         const fetchData = async () => {
             try {
                 const res = await fetch('/api/admin/clientes')
@@ -84,7 +88,6 @@ export default function Dashboard() {
                 setPlans(data.plans || [])
             } catch (error) {
                 console.error('Error fetching users:', error)
-                // Mantener array vacío en caso de error
                 setUsers([])
                 setClients([])
             } finally {
@@ -111,16 +114,13 @@ export default function Dashboard() {
     }
 
     const handleSubmitClient = async (clientData: Partial<Client>) => {
-
         if (editingClient) {
-
             try {
                 type ClientValue = Client[keyof Client];
                 const updatedFields: Partial<Record<keyof Client, ClientValue>> = {};
 
                 for (const key in clientData) {
                     const typedKey = key as keyof Client;
-
                     const newValue = clientData[typedKey];
                     if (newValue !== undefined && newValue !== editingClient[typedKey]) {
                         updatedFields[typedKey] = newValue;
@@ -155,7 +155,6 @@ export default function Dashboard() {
             } catch (error) {
                 toast.error('Error al actualizar cliente', { position: 'top-center' })
             }
-
         } else {
             try {
                 const res = await fetch('/api/admin/clientes', {
@@ -171,7 +170,6 @@ export default function Dashboard() {
                     return
                 }
                 const data = await res.json()
-                // Create new client
                 const newClient: Client = {
                     id: data.id ?? 0,
                     nombre: clientData.nombre!,
@@ -187,7 +185,6 @@ export default function Dashboard() {
             } catch (error) {
                 toast.error('Error al crear cliente', { position: 'top-center' })
             }
-
         }
         setLoadingForm(false);
     }
@@ -214,7 +211,6 @@ export default function Dashboard() {
         }
     }
 
-    // User handlers
     const handleOpenUserForm = (user?: SystemUser) => {
         setEditingUser(user || null)
         setIsUserFormOpen(true)
@@ -232,7 +228,6 @@ export default function Dashboard() {
 
             for (const key in userData) {
                 const typedKey = key as keyof SystemUser;
-
                 const newValue = userData[typedKey];
                 if (newValue !== undefined && newValue !== editingUser[typedKey]) {
                     updatedFields[typedKey] = newValue;
@@ -265,7 +260,6 @@ export default function Dashboard() {
             setEditingUser(null)
             handleCloseUserForm()
         } else {
-            // Create new user
             const res = await fetch('/api/admin/usuarios', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -297,7 +291,6 @@ export default function Dashboard() {
             handleCloseUserForm()
         }
         setLoadingForm(false);
-
     }
 
     const handleDeleteUser = async (id: number) => {
@@ -314,6 +307,63 @@ export default function Dashboard() {
         setUsers(users.filter((user) => user.id !== id))
         toast.success('Usuario eliminado correctamente', { position: 'top-center' })
         setLoadingForm(false);
+    }
+
+    const onGeneratePayment = async (paymentData: {
+        fecha: string
+        monto: number
+        estado: string
+        cliente_id: number
+        plan_id: number
+    }) => {
+        // Abrir el dialog en estado loading
+        setPaymentDialogOpen(true)
+        setPaymentStatus('loading')
+
+        try {
+            const resDolar = await fetch("https://dolarapi.com/v1/dolares/blue")
+            const dataDolar = await resDolar.json();
+            const montoTotal = dataDolar.venta * (paymentData.monto || 0)
+            paymentData.monto = montoTotal
+            
+            const response = await fetch('/api/admin/facturacion-total', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(paymentData)
+            })
+            
+            if (!response.ok) {
+                // Cambiar estado a error
+                setPaymentStatus('error')
+                toast.error(`Error: ${response.statusText}`, { 
+                    description: "Hubo un error en la creación del pago", 
+                    position: "top-center" 
+                });
+                return
+            }
+
+            const data = await response.json();
+            // Cambiar estado a success
+            setPaymentStatus('success')
+            toast.success('Pago agregado correctamente', { position: 'top-center' })
+
+        } catch (error) {
+            console.error('Error al crear el pago:', error);
+            // Cambiar estado a error
+            setPaymentStatus('error')
+            toast.error('Error al crear el pago', { 
+                description: "Ocurrió un error inesperado", 
+                position: "top-center" 
+            });
+        }
+    }
+
+    const handleClosePaymentDialog = () => {
+        setPaymentDialogOpen(false)
+        // Resetear el estado después de un breve delay para permitir que la animación se complete
+        setTimeout(() => {
+            setPaymentStatus(null)
+        }, 200)
     }
 
     return (
@@ -349,6 +399,7 @@ export default function Dashboard() {
                                             onCloseForm={handleCloseClientForm}
                                             onSubmit={handleSubmitClient}
                                             onDelete={handleDeleteClient}
+                                            onGeneratePayment={onGeneratePayment}
                                         />
                                     </TabsContent>
 
@@ -372,6 +423,13 @@ export default function Dashboard() {
                         )}
                     </div>
                 </main>
+                
+                {/* Dialog de generación de pago */}
+                <PaymentLoadingDialog 
+                    isOpen={paymentDialogOpen}
+                    onClose={handleClosePaymentDialog}
+                    status={paymentStatus}
+                />
             </div>
         </ProtectedRouteAdmin>
     )

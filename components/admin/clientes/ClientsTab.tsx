@@ -3,8 +3,8 @@
 import { Button } from "@/components/ui/button"
 import { Plus } from 'lucide-react'
 import type { Client, Plan } from "@/types/index"
-import { ClientsTable } from "../admin/ClientsTable"
-import { ClientForm } from "../admin/ClientForm"
+import { ClientsTable } from "./ClientsTable"
+import { ClientForm } from "./ClientForm"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
 interface ClientsTabProps {
@@ -18,6 +18,13 @@ interface ClientsTabProps {
   onDelete: (id: number) => void
   loading: boolean
   setLoading: (loading: boolean) => void
+  onGeneratePayment: (paymentData: {
+    fecha: string
+    monto: number
+    estado: string
+    cliente_id: number
+    plan_id: number
+  }) => void
 }
 
 export function ClientsTab({
@@ -30,7 +37,8 @@ export function ClientsTab({
   onSubmit,
   onDelete,
   loading,
-  setLoading
+  setLoading,
+  onGeneratePayment
 }: ClientsTabProps) {
   return (
     // Removido flex-1 flex flex-col min-h-0 - solo mantenemos space-y-4
@@ -53,7 +61,7 @@ export function ClientsTab({
         </CardHeader>
         {/* Simplificado a solo p-0 */}
         <CardContent className="p-0">
-          <ClientsTable loading={loading} clients={clients} plans={plans} onEdit={onOpenForm} onDelete={onDelete} />
+          <ClientsTable loading={loading} clients={clients} plans={plans} onEdit={onOpenForm} onDelete={onDelete} onGeneratePayment={onGeneratePayment} />
         </CardContent>
       </Card>
       <ClientForm

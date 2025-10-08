@@ -6,7 +6,7 @@ const supabase = createClient(
 );
 
 export async function getClients() {
-    const { data, error } = await supabase.from('waichatt_clientes').select('id,nombre,mensajes_disponibles,plan_id,telefono,email').order('id', { ascending: true });
+    const { data, error } = await supabase.from('waichatt_clientes').select('id,nombre,mensajes_disponibles,plan_id,telefono,email,estado').order('id', { ascending: true });
     if (error) {
         console.error('[Supabase error]', error);
         throw new Error("Error al obtener clientes");

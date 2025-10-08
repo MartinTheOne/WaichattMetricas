@@ -5,7 +5,7 @@ import { Plus } from "lucide-react"
 import type { SystemUser, Client, Role } from "@/types/index"
 import { UsersTable } from "./UsersTable"
 import { UserForm } from "./UserForm"
-import { CardHeader, Card, CardTitle, CardDescription, CardContent } from "../ui/card"
+import { CardHeader, Card, CardTitle, CardDescription, CardContent } from "../../ui/card"
 
 interface UsersTabProps {
   users: SystemUser[]
