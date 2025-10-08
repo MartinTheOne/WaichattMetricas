@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Download, Calendar, DollarSign } from "lucide-react"
 import { IFacturacion } from "@/types/IFacturacion"
-import { downloadInvoicePDF } from "@/components/download-invoice"
+import { downloadInvoicePDF } from "@/components/admin/ingresos/download-invoice"
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 
