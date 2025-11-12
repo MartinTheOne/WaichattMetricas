@@ -8,6 +8,7 @@ interface Balance {
     totalIngresos: number
     totalEgresos: number
     balance: number
+    balanceUsd?: number
 }
 
 export default function cuentaBancaria() {
@@ -15,6 +16,7 @@ export default function cuentaBancaria() {
         totalIngresos: 0,
         totalEgresos: 0,
         balance: 0,
+        balanceUsd: 0,
     });
     const [isLoading, setIsLoading] = useState(false);
     useEffect(() => {
@@ -41,8 +43,8 @@ export default function cuentaBancaria() {
                 <div className="max-w-7xl mx-auto space-y-8">
 
                     {isLoading ? (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {[1, 2, 3].map((i) => (
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            {[1, 2, 3, 4].map((i) => (
                                 <Card key={i}>
                                     <CardHeader className="pb-2">
                                         <Skeleton className="h-4 w-24" />
@@ -54,7 +56,7 @@ export default function cuentaBancaria() {
                                 </Card>
                             ))}
                         </div>
-                    ) : (<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    ) : (<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Ingresos</CardTitle>
@@ -94,6 +96,23 @@ export default function cuentaBancaria() {
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
                                     {balance.balance >= 0 ? "Superávit" : "Déficit"}
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Balance</CardTitle>
+                                <DollarSign className="w-4 h-4 text-blue-600" />
+                            </CardHeader>
+                            <CardContent>
+                                <div
+                                    className={`text-2xl font-bold ${balance.balanceUsd && balance.balanceUsd >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                                >
+                                    ${balance.balanceUsd && balance.balanceUsd.toLocaleString("es-AR")}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {balance.balanceUsd && balance.balanceUsd >= 0 ? "Superávit" : "Déficit"}
                                 </p>
                             </CardContent>
                         </Card>

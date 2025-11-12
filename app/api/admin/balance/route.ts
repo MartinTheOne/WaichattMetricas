@@ -22,14 +22,26 @@ export async function GET() {
     const totalIngresos = pagos?.reduce((sum, pago) => sum + (pago.monto || 0), 0) || 0
     const totalEgresos = egresos?.reduce((sum, egreso) => sum + (egreso.monto || 0), 0) || 0
     const balance = totalIngresos - totalEgresos
+    const balanceUsd = await getPriceDolar() || 0;
 
     return NextResponse.json({
       totalIngresos,
       totalEgresos,
       balance,
+      balanceUsd: balance / balanceUsd,
     })
   } catch (error) {
     console.error("Error calculating balance:", error)
     return NextResponse.json({ error: "Error calculating balance" }, { status: 500 })
   }
+}
+
+
+async function getPriceDolar() {
+  
+  const res= await fetch('https://dolarapi.com/v1/dolares/blue')
+
+  const data= await res.json()
+  
+  return data.venta as number
 }
