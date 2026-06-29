@@ -1,82 +1,114 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { ArrowLeft, Eye, FileText, Pencil, Plus, Save, Trash2 } from "lucide-react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Eye, Save, ArrowLeft, ImageIcon, Video, Pencil, FileText } from "lucide-react"
-import { toast } from "sonner"
-import Link from "next/link"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AddMediaDialog } from "@/components/admin/crear-blog/add-media-dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-import { DeleteBlogDialog } from "@/components/admin/crear-blog/delete-blog-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DeleteBlogDialog } from "@/components/admin/crear-blog/delete-blog-dialog"
+import { blogAuthors } from "@/data/blog-authors"
 
-interface MediaItem {
-  url: string
-  size: "small" | "medium" | "large" | "full"
-}
+type Faq = { tag: string; question: string; answer: string }
+type HowToStep = { title: string; desc: string }
 
-interface Section {
-  id: string
-  title: string
-  subtitle: string
-  description: string
-  images: MediaItem[]
-  videos: MediaItem[]
-}
-
-interface BlogForm {
+type BlogForm = {
   slug: string
   title: string
-  subtitle: string
   description: string
-  main_image: string
-  sections: Section[]
-  status: string
-  recommendations: number[]
+  publishDate: string
+  updatedDate: string
+  tags: string
+  draft: boolean
+  image: string
+  body: string
+  author: {
+    name: string
+    role: string
+    url: string
+    bio: string
+  }
+  howTo: {
+    name: string
+    steps: HowToStep[]
+  }
+  faqs: Faq[]
+}
+
+type Blog = Omit<BlogForm, "tags"> & {
+  id: string
+  tags: string[]
+  createdAt?: string
+}
+
+const today = () => new Date().toISOString().slice(0, 10)
+
+const emptyForm = (): BlogForm => ({
+  slug: "",
+  title: "",
+  description: "",
+  publishDate: today(),
+  updatedDate: "",
+  tags: "",
+  draft: true,
+  image: "",
+  body: "",
+  author: { name: "", role: "", url: "", bio: "" },
+  howTo: { name: "", steps: [] },
+  faqs: [],
+})
+
+const splitTags = (tags: string) =>
+  tags
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+
+// Valida lo necesario para que el blog sume al SEO. `publishing` exige el set completo;
+// como borrador alcanza con el frontmatter base. Devuelve el primer error o null.
+const validateForm = (form: BlogForm, publishing: boolean): string | null => {
+  if (!form.title.trim() || !form.slug.trim() || !form.description.trim() || !form.publishDate || !form.body.trim()) {
+    return "Título, slug, descripción, fecha y contenido son obligatorios."
+  }
+  const halfFaq = form.faqs.some((faq) => Boolean(faq.question.trim()) !== Boolean(faq.answer.trim()))
+  if (halfFaq) return "Cada FAQ necesita pregunta y respuesta."
+  const halfStep = form.howTo.steps.some((step) => Boolean(step.title.trim()) !== Boolean(step.desc.trim()))
+  if (halfStep) return "Cada paso del HowTo necesita título y descripción."
+  if (form.howTo.name.trim() && !form.howTo.steps.some((step) => step.title.trim() && step.desc.trim())) {
+    return "El HowTo necesita al menos un paso completo, o quitá su nombre para no incluirlo."
+  }
+  if (publishing) {
+    if (!splitTags(form.tags).length) return "Agregá al menos un tag: son las palabras clave del artículo."
+    if (!form.author.name.trim()) return "Seleccioná un autor: el contenido firmado mejora el SEO (E-E-A-T)."
+  }
+  return null
 }
 
 export default function CrearBlogPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [form, setForm] = useState<BlogForm>(emptyForm)
+  const [blogs, setBlogs] = useState<Blog[]>([])
+  const [editingBlogId, setEditingBlogId] = useState<string | null>(null)
+  const [blogToDelete, setBlogToDelete] = useState<Blog | null>(null)
   const [mainTab, setMainTab] = useState("crear")
   const [activeTab, setActiveTab] = useState("editor")
-  const [imageDialogOpen, setImageDialogOpen] = useState(false)
-  const [videoDialogOpen, setVideoDialogOpen] = useState(false)
-  const [currentSectionIndex, setCurrentSectionIndex] = useState<number | null>(null)
-  const [availableBlogs, setAvailableBlogs] = useState<any[]>([])
-  const [allBlogs, setAllBlogs] = useState<any[]>([])
   const [isLoadingBlogs, setIsLoadingBlogs] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [blogToDelete, setBlogToDelete] = useState<any>(null)
-  const [editingBlogId, setEditingBlogId] = useState<number | null>(null)
-  const [form, setForm] = useState<BlogForm>({
-    slug: "",
-    title: "",
-    subtitle: "",
-    description: "",
-    main_image: "",
-    sections: [],
-    status: "draft",
-    recommendations: [],
-  })
 
-  useEffect(() => {
-    fetchAllBlogs()
-  }, [])
-
-  const fetchAllBlogs = async () => {
+  const fetchBlogs = async () => {
     setIsLoadingBlogs(true)
     try {
       const response = await fetch("/api/admin/blogs")
       const data = await response.json()
-      setAllBlogs(data.blogs || [])
-      setAvailableBlogs(data.blogs.filter((blog: any) => blog.status === "published"))
+      setBlogs(data.blogs || [])
     } catch (error) {
       console.error("Error fetching blogs:", error)
       toast.error("Error al cargar los artículos")
@@ -85,206 +117,122 @@ export default function CrearBlogPage() {
     }
   }
 
+  useEffect(() => {
+    fetchBlogs()
+  }, [])
+
   const updateForm = (field: keyof BlogForm, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const addSection = () => {
-    const newSection: Section = {
-      id: `sec-${Date.now()}`,
-      title: "",
-      subtitle: "",
-      description: "",
-      images: [],
-      videos: [],
-    }
-    updateForm("sections", [...form.sections, newSection])
+  const updateAuthor = (field: keyof BlogForm["author"], value: string) => {
+    setForm((prev) => ({ ...prev, author: { ...prev.author, [field]: value } }))
   }
 
-  const updateSection = (index: number, field: keyof Section, value: any) => {
-    const updatedSections = [...form.sections]
-    updatedSections[index] = { ...updatedSections[index], [field]: value }
-    updateForm("sections", updatedSections)
+  // Selecciona un founder y rellena los campos de autor; "custom" los limpia para edición manual.
+  const selectAuthor = (name: string) => {
+    const found = name === "custom" ? null : blogAuthors.find((author) => author.name === name)
+    setForm((prev) => ({ ...prev, author: found ? { ...found } : { name: "", role: "", url: "", bio: "" } }))
   }
 
-  const removeSection = (index: number) => {
-    updateForm(
-      "sections",
-      form.sections.filter((_, i) => i !== index),
-    )
+  const selectedAuthor = blogAuthors.some((author) => author.name === form.author.name)
+    ? form.author.name
+    : "custom"
+
+  const updateFaq = (index: number, field: keyof Faq, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      faqs: prev.faqs.map((faq, faqIndex) => (faqIndex === index ? { ...faq, [field]: value } : faq)),
+    }))
   }
 
-  const openImageDialog = (index: number) => {
-    setCurrentSectionIndex(index)
-    setImageDialogOpen(true)
+  const updateStep = (index: number, field: keyof HowToStep, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      howTo: {
+        ...prev.howTo,
+        steps: prev.howTo.steps.map((step, stepIndex) =>
+          stepIndex === index ? { ...step, [field]: value } : step,
+        ),
+      },
+    }))
   }
 
-  const handleAddImage = (url: string, size: "small" | "medium" | "large" | "full") => {
-    if (currentSectionIndex !== null) {
-      const updatedSections = [...form.sections]
-      updatedSections[currentSectionIndex].images.push({ url, size })
-      updateForm("sections", updatedSections)
-    }
+  const payload = {
+    ...form,
+    tags: splitTags(form.tags),
+    author: form.author.name.trim() ? form.author : undefined,
+    howTo: form.howTo.name.trim() && form.howTo.steps.length ? form.howTo : undefined,
+    faqs: form.faqs.length ? form.faqs : undefined,
   }
 
-  const openVideoDialog = (index: number) => {
-    setCurrentSectionIndex(index)
-    setVideoDialogOpen(true)
-  }
-
-  const handleAddVideo = (url: string, size: "small" | "medium" | "large" | "full") => {
-    if (currentSectionIndex !== null) {
-      const updatedSections = [...form.sections]
-      updatedSections[currentSectionIndex].videos.push({ url, size })
-      updateForm("sections", updatedSections)
-    }
-  }
-
-  const updateImageSize = (sectionIndex: number, imageIndex: number, size: "small" | "medium" | "large" | "full") => {
-    const updatedSections = [...form.sections]
-    updatedSections[sectionIndex].images[imageIndex].size = size
-    updateForm("sections", updatedSections)
-  }
-
-  const removeImageFromSection = (sectionIndex: number, imageIndex: number) => {
-    const updatedSections = [...form.sections]
-    updatedSections[sectionIndex].images = updatedSections[sectionIndex].images.filter((_, i) => i !== imageIndex)
-    updateForm("sections", updatedSections)
-  }
-
-  const updateVideoSize = (sectionIndex: number, videoIndex: number, size: "small" | "medium" | "large" | "full") => {
-    const updatedSections = [...form.sections]
-    updatedSections[sectionIndex].videos[videoIndex].size = size
-    updateForm("sections", updatedSections)
-  }
-
-  const removeVideoFromSection = (sectionIndex: number, videoIndex: number) => {
-    const updatedSections = [...form.sections]
-    updatedSections[sectionIndex].videos = updatedSections[sectionIndex].videos.filter((_, i) => i !== videoIndex)
-    updateForm("sections", updatedSections)
-  }
-
-  const handleSubmit = async (status: string) => {
-    if (!form.title || !form.slug) {
-      toast.error("El título y el slug son obligatorios")
+  const handleSubmit = async (draft: boolean) => {
+    const error = validateForm(form, !draft)
+    if (error) {
+      toast.error(error)
       return
     }
 
     setIsSubmitting(true)
     try {
-      const method = editingBlogId ? "PUT" : "POST"
-      const body = editingBlogId ? { ...form, status, id: editingBlogId } : { ...form, status }
-
       const response = await fetch("/api/admin/blogs", {
-        method,
+        method: editingBlogId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(editingBlogId ? { ...payload, draft, id: editingBlogId } : { ...payload, draft }),
       })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Error al guardar el blog")
 
-      if (!response.ok) throw new Error("Error al guardar el blog")
-
-      toast.success(
-        editingBlogId
-          ? "Blog actualizado exitosamente"
-          : status === "published"
-            ? "Blog publicado exitosamente"
-            : "Blog guardado como borrador",
-      )
-
-      // Reset form and refresh blogs list
-      setForm({
-        slug: "",
-        title: "",
-        subtitle: "",
-        description: "",
-        main_image: "",
-        sections: [],
-        status: "draft",
-        recommendations: [],
-      })
+      toast.success(draft ? "Blog guardado como borrador" : "Blog publicado")
+      setForm(emptyForm())
       setEditingBlogId(null)
-      fetchAllBlogs()
       setMainTab("gestionar")
+      fetchBlogs()
     } catch (error) {
-      toast.error("Error al guardar el blog")
+      toast.error(error instanceof Error ? error.message : "Error al guardar el blog")
       console.error(error)
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleEdit = (blog: any) => {
+  const handleEdit = (blog: Blog) => {
     setForm({
-      slug: blog.slug,
-      title: blog.title,
-      subtitle: blog.subtitle || "",
+      slug: blog.slug || "",
+      title: blog.title || "",
       description: blog.description || "",
-      main_image: blog.main_image || "",
-      sections: blog.sections || [],
-      status: blog.status,
-      recommendations: blog.recommendations || [],
+      publishDate: blog.publishDate?.slice(0, 10) || today(),
+      updatedDate: blog.updatedDate?.slice(0, 10) || "",
+      tags: (blog.tags || []).join(", "),
+      draft: Boolean(blog.draft),
+      image: blog.image || "",
+      body: blog.body || "",
+      author: blog.author || { name: "", role: "", url: "", bio: "" },
+      howTo: blog.howTo || { name: "", steps: [] },
+      faqs: blog.faqs || [],
     })
     setEditingBlogId(blog.id)
     setMainTab("crear")
     setActiveTab("editor")
-    toast.info("Editando artículo: " + blog.title)
   }
 
   const handleDelete = async () => {
     if (!blogToDelete) return
 
     try {
-      const response = await fetch(`/api/admin/blogs?id=${blogToDelete.id}`, {
-        method: "DELETE",
-      })
-
+      const response = await fetch(`/api/admin/blogs?id=${blogToDelete.id}`, { method: "DELETE" })
       if (!response.ok) throw new Error("Error al eliminar el blog")
-
-      toast.success("Artículo eliminado exitosamente")
-      fetchAllBlogs()
+      toast.success("Artículo eliminado")
+      fetchBlogs()
     } catch (error) {
       toast.error("Error al eliminar el artículo")
       console.error(error)
     }
   }
 
-  const handleCancelEdit = () => {
-    setForm({
-      slug: "",
-      title: "",
-      subtitle: "",
-      description: "",
-      main_image: "",
-      sections: [],
-      status: "draft",
-      recommendations: [],
-    })
+  const cancelEdit = () => {
+    setForm(emptyForm())
     setEditingBlogId(null)
-    toast.info("Edición cancelada")
-  }
-
-  const getSizeClass = (size: string) => {
-    switch (size) {
-      case "small":
-        return "max-w-sm"
-      case "medium":
-        return "max-w-2xl"
-      case "large":
-        return "max-w-4xl"
-      case "full":
-        return "max-w-full"
-      default:
-        return "max-w-4xl"
-    }
-  }
-
-  const toggleRecommendation = (blogId: number) => {
-    setForm((prev) => ({
-      ...prev,
-      recommendations: prev.recommendations.includes(blogId)
-        ? prev.recommendations.filter((id) => id !== blogId)
-        : [...prev.recommendations, blogId],
-    }))
   }
 
   return (
@@ -297,10 +245,8 @@ export default function CrearBlogPage() {
               Volver al blog
             </Button>
           </Link>
-          <h1 className="text-4xl font-bold text-white">{editingBlogId ? "Editar Artículo" : "Gestión de Blog"}</h1>
-          <p className="text-white/90 mt-2">
-            {editingBlogId ? "Actualiza tu artículo" : "Crea, edita y gestiona tus artículos"}
-          </p>
+          <h1 className="text-4xl font-bold text-white">{editingBlogId ? "Editar artículo" : "Gestión de blog"}</h1>
+          <p className="text-white/90 mt-2">Contenido compatible con el blog estático de Waichatt</p>
         </div>
       </div>
 
@@ -309,15 +255,15 @@ export default function CrearBlogPage() {
           <TabsList>
             <TabsTrigger value="crear">
               <FileText className="w-4 h-4 mr-2" />
-              {editingBlogId ? "Editar" : "Crear Nuevo"}
+              {editingBlogId ? "Editar" : "Crear nuevo"}
             </TabsTrigger>
-            <TabsTrigger value="gestionar">Gestionar Artículos</TabsTrigger>
+            <TabsTrigger value="gestionar">Gestionar artículos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="crear">
             {editingBlogId && (
               <div className="mb-4">
-                <Button variant="outline" onClick={handleCancelEdit}>
+                <Button variant="outline" onClick={cancelEdit}>
                   Cancelar edición
                 </Button>
               </div>
@@ -328,375 +274,318 @@ export default function CrearBlogPage() {
                 <TabsTrigger value="editor">Editor</TabsTrigger>
                 <TabsTrigger value="preview">
                   <Eye className="w-4 h-4 mr-2" />
-                  Vista Previa
+                  Vista previa
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="editor" className="space-y-6">
                 <Card className="rounded-2xl">
                   <CardHeader>
-                    <CardTitle>Información Básica</CardTitle>
+                    <CardTitle>Frontmatter</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="title">Título *</Label>
-                        <Input
-                          id="title"
-                          value={form.title}
-                          onChange={(e) => updateForm("title", e.target.value)}
-                          placeholder="Título del artículo"
-                        />
+                        <Input id="title" value={form.title} onChange={(e) => updateForm("title", e.target.value)} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="slug">Slug (URL) *</Label>
-                        <Input
-                          id="slug"
-                          value={form.slug}
-                          onChange={(e) => updateForm("slug", e.target.value)}
-                          placeholder="guia-turboscribe"
-                        />
+                        <Label htmlFor="slug">Slug *</Label>
+                        <Input id="slug" value={form.slug} onChange={(e) => updateForm("slug", e.target.value)} />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="subtitle">Subtítulo</Label>
-                      <Input
-                        id="subtitle"
-                        value={form.subtitle}
-                        onChange={(e) => updateForm("subtitle", e.target.value)}
-                        placeholder="Breve descripción del artículo"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Descripción</Label>
+                      <Label htmlFor="description">Descripción *</Label>
                       <Textarea
                         id="description"
                         value={form.description}
                         onChange={(e) => updateForm("description", e.target.value)}
-                        placeholder="Descripción completa del artículo"
-                        rows={4}
+                        rows={3}
                       />
+                      <p className="text-sm text-muted-foreground">
+                        Resumen de 120–160 caracteres. Es la meta description que aparece en Google y en las redes.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="publishDate">Fecha de publicación *</Label>
+                        <Input
+                          id="publishDate"
+                          type="date"
+                          value={form.publishDate}
+                          onChange={(e) => updateForm("publishDate", e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="updatedDate">Fecha de actualización</Label>
+                        <Input
+                          id="updatedDate"
+                          type="date"
+                          value={form.updatedDate}
+                          onChange={(e) => updateForm("updatedDate", e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-end gap-2 pb-2">
+                        <Checkbox
+                          id="draft"
+                          checked={form.draft}
+                          onCheckedChange={(checked) => updateForm("draft", Boolean(checked))}
+                        />
+                        <Label htmlFor="draft">Borrador</Label>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="main_image">Imagen Principal (URL)</Label>
+                      <Label htmlFor="tags">Tags</Label>
                       <Input
-                        id="main_image"
-                        value={form.main_image}
-                        onChange={(e) => updateForm("main_image", e.target.value)}
-                        placeholder="https://ejemplo.com/imagen.jpg"
+                        id="tags"
+                        value={form.tags}
+                        onChange={(e) => updateForm("tags", e.target.value)}
+                        placeholder="CRM inmobiliario, IA, WhatsApp"
                       />
+                      <p className="text-sm text-muted-foreground">
+                        Palabras clave separadas por coma. Al menos una para publicar.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="image">Imagen de portada (URL)</Label>
+                      <Input
+                        id="image"
+                        type="url"
+                        value={form.image}
+                        onChange={(e) => updateForm("image", e.target.value)}
+                        placeholder="https://..."
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Pegá el link de una imagen (https). Se muestra como portada del artículo y como imagen de
+                        preview al compartir en redes. Ideal 1200×630 px.
+                      </p>
+                      {/^https?:\/\//i.test(form.image) && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={form.image}
+                          alt="Vista previa de portada"
+                          className="mt-2 w-full max-w-md rounded-lg border aspect-[1200/630] object-cover"
+                        />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card className="rounded-2xl">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Secciones del Artículo</CardTitle>
-                    <Button onClick={addSection} size="sm" className="bg-[#268656] hover:bg-[#1F6B49]">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Agregar Sección
-                    </Button>
+                  <CardHeader className="space-y-1">
+                    <CardTitle>Contenido Markdown *</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      El cuerpo del artículo. Usá ## para los subtítulos: ayudan a Google y a las IAs a entender la
+                      estructura. Apuntá a 600+ palabras para que el contenido posicione.
+                    </p>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    {form.sections.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-8">
-                        No hay secciones. Haz clic en "Agregar Sección" para comenzar.
-                      </p>
-                    ) : (
-                      form.sections.map((section, index) => (
-                        <Card key={section.id} className="border-2">
-                          <CardHeader className="flex flex-row items-center justify-between pb-3">
-                            <CardTitle className="text-lg">Sección {index + 1}</CardTitle>
-                            <Button
-                              onClick={() => removeSection(index)}
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-600"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                              <Label>Título</Label>
-                              <Input
-                                value={section.title}
-                                onChange={(e) => updateSection(index, "title", e.target.value)}
-                                placeholder="Título de la sección"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Subtítulo</Label>
-                              <Input
-                                value={section.subtitle}
-                                onChange={(e) => updateSection(index, "subtitle", e.target.value)}
-                                placeholder="Subtítulo (opcional)"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Descripción</Label>
-                              <Textarea
-                                value={section.description}
-                                onChange={(e) => updateSection(index, "description", e.target.value)}
-                                placeholder="Contenido de la sección"
-                                rows={4}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Label>Imágenes</Label>
-                                <Button
-                                  onClick={() => openImageDialog(index)}
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-[#268656]"
-                                >
-                                  <ImageIcon className="w-4 h-4 mr-2" />
-                                  Agregar Imagen
-                                </Button>
-                              </div>
-                              {section.images.length > 0 && (
-                                <div className="space-y-3">
-                                  {section.images.map((img, imgIndex) => (
-                                    <div key={imgIndex} className="flex items-center gap-2 p-3 border rounded-lg">
-                                      <div className="flex-1 space-y-2">
-                                        <Input value={img.url} readOnly className="text-sm" />
-                                        <Select
-                                          value={img.size}
-                                          onValueChange={(value: any) => updateImageSize(index, imgIndex, value)}
-                                        >
-                                          <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Tamaño" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="small">Pequeño (33%)</SelectItem>
-                                            <SelectItem value="medium">Mediano (50%)</SelectItem>
-                                            <SelectItem value="large">Grande (75%)</SelectItem>
-                                            <SelectItem value="full">Completo (100%)</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <Button
-                                        onClick={() => removeImageFromSection(index, imgIndex)}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-red-600 shrink-0"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Label>Videos</Label>
-                                <Button
-                                  onClick={() => openVideoDialog(index)}
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-[#268656]"
-                                >
-                                  <Video className="w-4 h-4 mr-2" />
-                                  Agregar Video
-                                </Button>
-                              </div>
-                              {section.videos.length > 0 && (
-                                <div className="space-y-3">
-                                  {section.videos.map((vid, vidIndex) => (
-                                    <div key={vidIndex} className="flex items-center gap-2 p-3 border rounded-lg">
-                                      <div className="flex-1 space-y-2">
-                                        <Input value={vid.url} readOnly className="text-sm" />
-                                        <Select
-                                          value={vid.size}
-                                          onValueChange={(value: any) => updateVideoSize(index, vidIndex, value)}
-                                        >
-                                          <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Tamaño" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="small">Pequeño (33%)</SelectItem>
-                                            <SelectItem value="medium">Mediano (50%)</SelectItem>
-                                            <SelectItem value="large">Grande (75%)</SelectItem>
-                                            <SelectItem value="full">Completo (100%)</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <Button
-                                        onClick={() => removeVideoFromSection(index, vidIndex)}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-red-600 shrink-0"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    )}
+                  <CardContent>
+                    <Textarea
+                      value={form.body}
+                      onChange={(e) => updateForm("body", e.target.value)}
+                      rows={18}
+                      className="font-mono"
+                      placeholder="## Título de sección&#10;&#10;Contenido del artículo..."
+                    />
                   </CardContent>
                 </Card>
 
                 <Card className="rounded-2xl">
-                  <CardHeader>
-                    <CardTitle>Artículos Recomendados</CardTitle>
+                  <CardHeader className="space-y-1">
+                    <CardTitle>Autor</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Selecciona hasta 3 artículos relacionados para mostrar al final
+                      Quién firma el artículo (requerido para publicar). Elegí un founder: el contenido firmado por una
+                      persona real mejora el E-E-A-T y suma para el SEO. "Personalizado" permite un autor invitado.
                     </p>
                   </CardHeader>
-                  <CardContent>
-                    {availableBlogs.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-4">
-                        No hay artículos publicados disponibles para recomendar
-                      </p>
-                    ) : (
-                      <div className="space-y-3 max-h-96 overflow-y-auto">
-                        {availableBlogs
-                          .filter((blog) => blog.id !== editingBlogId)
-                          .map((blog) => (
-                            <div
-                              key={blog.id}
-                              className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50"
-                            >
-                              <Checkbox
-                                id={`blog-${blog.id}`}
-                                checked={form.recommendations.includes(blog.id)}
-                                onCheckedChange={() => toggleRecommendation(blog.id)}
-                                disabled={!form.recommendations.includes(blog.id) && form.recommendations.length >= 3}
-                              />
-                              <label htmlFor={`blog-${blog.id}`} className="flex-1 cursor-pointer">
-                                <div className="font-medium">{blog.title}</div>
-                                {blog.subtitle && <div className="text-sm text-muted-foreground">{blog.subtitle}</div>}
-                              </label>
-                            </div>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2 space-y-2">
+                      <Label>Seleccionar founder</Label>
+                      <Select value={selectedAuthor} onValueChange={selectAuthor}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar autor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {blogAuthors.map((author) => (
+                            <SelectItem key={author.name} value={author.name}>
+                              {author.name} · {author.role}
+                            </SelectItem>
                           ))}
-                      </div>
-                    )}
-                    {form.recommendations.length > 0 && (
-                      <p className="text-sm text-muted-foreground mt-3">
-                        {form.recommendations.length} de 3 artículos seleccionados
+                          <SelectItem value="custom">Personalizado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Input placeholder="Nombre" value={form.author.name} onChange={(e) => updateAuthor("name", e.target.value)} />
+                    <Input placeholder="Rol" value={form.author.role} onChange={(e) => updateAuthor("role", e.target.value)} />
+                    <Input placeholder="URL" value={form.author.url} onChange={(e) => updateAuthor("url", e.target.value)} />
+                    <Input placeholder="Bio" value={form.author.bio} onChange={(e) => updateAuthor("bio", e.target.value)} />
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl">
+                  <CardHeader className="flex flex-row items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <CardTitle>FAQ</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Preguntas y respuestas sobre el tema. Se muestran al final del post y generan el schema FAQPage,
+                        que Google y las IAs citan en sus respuestas. Recomendado: 3–5 preguntas con respuestas claras de
+                        2–4 líneas. Si agregás una, completá pregunta y respuesta.
                       </p>
-                    )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => updateForm("faqs", [...form.faqs, { tag: "", question: "", answer: "" }])}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Agregar
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {form.faqs.length === 0 && <p className="text-sm text-muted-foreground">Sin preguntas.</p>}
+                    {form.faqs.map((faq, index) => (
+                      <div key={index} className="grid grid-cols-1 gap-3 border rounded-lg p-4">
+                        <div className="flex justify-between gap-3">
+                          <Input placeholder="Tag" value={faq.tag} onChange={(e) => updateFaq(index, "tag", e.target.value)} />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600"
+                            onClick={() => updateForm("faqs", form.faqs.filter((_, faqIndex) => faqIndex !== index))}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <Input
+                          placeholder="Pregunta"
+                          value={faq.question}
+                          onChange={(e) => updateFaq(index, "question", e.target.value)}
+                        />
+                        <Textarea
+                          placeholder="Respuesta"
+                          value={faq.answer}
+                          onChange={(e) => updateFaq(index, "answer", e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl">
+                  <CardHeader className="flex flex-row items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <CardTitle>HowTo (opcional)</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Úsalo solo si el artículo explica un proceso paso a paso. Genera el schema HowTo (Google lo
+                        muestra como guía). Si el tema no es un procedimiento, dejalo vacío: un HowTo forzado perjudica
+                        el SEO. Si le ponés nombre, cargá al menos un paso con título y descripción.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() =>
+                        updateForm("howTo", {
+                          ...form.howTo,
+                          steps: [...form.howTo.steps, { title: "", desc: "" }],
+                        })
+                      }
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Paso
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Input
+                      placeholder="Nombre del HowTo"
+                      value={form.howTo.name}
+                      onChange={(e) => updateForm("howTo", { ...form.howTo, name: e.target.value })}
+                    />
+                    {form.howTo.steps.map((step, index) => (
+                      <div key={index} className="grid grid-cols-1 gap-3 border rounded-lg p-4">
+                        <div className="flex justify-between gap-3">
+                          <Input
+                            placeholder="Título del paso"
+                            value={step.title}
+                            onChange={(e) => updateStep(index, "title", e.target.value)}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600"
+                            onClick={() =>
+                              updateForm("howTo", {
+                                ...form.howTo,
+                                steps: form.howTo.steps.filter((_, stepIndex) => stepIndex !== index),
+                              })
+                            }
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <Textarea
+                          placeholder="Descripción del paso"
+                          value={step.desc}
+                          onChange={(e) => updateStep(index, "desc", e.target.value)}
+                        />
+                      </div>
+                    ))}
                   </CardContent>
                 </Card>
 
                 <div className="flex gap-4 justify-end">
-                  <Button
-                    onClick={() => handleSubmit("draft")}
-                    variant="outline"
-                    disabled={isSubmitting}
-                    className="rounded-xl"
-                  >
+                  <Button onClick={() => handleSubmit(true)} variant="outline" disabled={isSubmitting} className="rounded-xl">
                     <Save className="w-4 h-4 mr-2" />
-                    Guardar Borrador
+                    Guardar borrador
                   </Button>
                   <Button
-                    onClick={() => handleSubmit("published")}
+                    onClick={() => handleSubmit(false)}
                     disabled={isSubmitting}
                     className="bg-[#268656] hover:bg-[#1F6B49] rounded-xl"
                   >
-                    {editingBlogId ? "Actualizar Artículo" : "Publicar Artículo"}
+                    {editingBlogId ? "Actualizar artículo" : "Publicar artículo"}
                   </Button>
                 </div>
               </TabsContent>
 
               <TabsContent value="preview">
-                <div className="bg-white rounded-2xl overflow-hidden shadow-lg">
-                  <div className="bg-gradient-to-br from-[#1F6B49] via-[#268656] to-[#2D9F6F] py-16 px-6">
-                    <div className="max-w-4xl mx-auto">
-                      <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 text-balance">
-                        {form.title || "Título del artículo"}
-                      </h1>
-                      {form.subtitle && <p className="text-xl text-white/90 mb-6 text-pretty">{form.subtitle}</p>}
-                    </div>
-                  </div>
-
-                  {form.main_image && (
-                    <div className="max-w-5xl mx-auto px-6 -mt-12">
-                      <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border-4 border-white">
-                        <img
-                          src={form.main_image || "/placeholder.svg"}
-                          alt={form.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
+                <article className="bg-white rounded-2xl shadow-lg max-w-4xl mx-auto p-8 md:p-12">
+                  <Badge variant={form.draft ? "secondary" : "default"}>{form.draft ? "Borrador" : "Publicado"}</Badge>
+                  <h1 className="text-4xl font-bold mt-4 mb-4">{form.title || "Título del artículo"}</h1>
+                  <p className="text-lg text-muted-foreground leading-relaxed">{form.description}</p>
+                  {/^https?:\/\//i.test(form.image) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={form.image}
+                      alt={form.title || "Portada"}
+                      className="mt-8 w-full rounded-xl border aspect-[1200/630] object-cover"
+                    />
                   )}
-
-                  <div className="max-w-4xl mx-auto px-6 py-16">
-                    {form.description && (
-                      <p className="text-xl text-muted-foreground leading-relaxed mb-12 text-pretty">
-                        {form.description}
-                      </p>
-                    )}
-
-                    <div className="space-y-16">
-                      {form.sections.map((section, index) => (
-                        <div key={section.id} className="space-y-6">
-                          {section.title && <h2 className="text-3xl font-bold text-balance">{section.title}</h2>}
-                          {section.subtitle && (
-                            <h3 className="text-2xl font-semibold text-balance">{section.subtitle}</h3>
-                          )}
-                          {section.description && (
-                            <p className="text-lg text-muted-foreground leading-relaxed text-pretty">
-                              {section.description}
-                            </p>
-                          )}
-
-                          {section.images.length > 0 && (
-                            <div className="flex flex-col items-center gap-6 my-8">
-                              {section.images.map((image, imgIndex) => (
-                                <div
-                                  key={imgIndex}
-                                  className={`rounded-xl overflow-hidden border shadow-md w-full ${getSizeClass(image.size)}`}
-                                >
-                                  <img
-                                    src={image.url || "/placeholder.svg"}
-                                    alt={`Imagen ${imgIndex + 1}`}
-                                    className="w-full"
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {section.videos.length > 0 && (
-                            <div className="flex flex-col items-center gap-6 my-8">
-                              {section.videos.map((video, vidIndex) => (
-                                <div
-                                  key={vidIndex}
-                                  className={`aspect-video rounded-xl overflow-hidden border shadow-md w-full ${getSizeClass(video.size)}`}
-                                >
-                                  <iframe
-                                    src={video.url.replace("watch?v=", "embed/")}
-                                    title={`Video ${vidIndex + 1}`}
-                                    className="w-full h-full"
-                                    allowFullScreen
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {index < form.sections.length - 1 && <hr className="border-border my-12" />}
+                  <div className="mt-8 whitespace-pre-wrap font-sans leading-7 text-muted-foreground">
+                    {form.body || "Contenido Markdown"}
+                  </div>
+                  {form.faqs.length > 0 && (
+                    <div className="mt-10 space-y-4">
+                      <h2 className="text-2xl font-bold">Preguntas frecuentes</h2>
+                      {form.faqs.map((faq, index) => (
+                        <div key={index} className="border rounded-lg p-4">
+                          <h3 className="font-semibold">{faq.question}</h3>
+                          <p className="text-muted-foreground mt-2">{faq.answer}</p>
                         </div>
                       ))}
                     </div>
-                  </div>
-                </div>
+                  )}
+                </article>
               </TabsContent>
             </Tabs>
           </TabsContent>
@@ -704,53 +593,37 @@ export default function CrearBlogPage() {
           <TabsContent value="gestionar">
             <Card className="rounded-2xl">
               <CardHeader>
-                <CardTitle>Todos los Artículos</CardTitle>
-                <p className="text-sm text-muted-foreground">Gestiona tus artículos publicados y borradores</p>
+                <CardTitle>Todos los artículos</CardTitle>
               </CardHeader>
               <CardContent>
                 {isLoadingBlogs ? (
                   <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
-                        <Skeleton className="h-20 w-32 rounded" />
+                    {[1, 2, 3].map((item) => (
+                      <div key={item} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <Skeleton className="h-16 w-24 rounded" />
                         <div className="flex-1 space-y-2">
                           <Skeleton className="h-5 w-3/4" />
                           <Skeleton className="h-4 w-1/2" />
                         </div>
-                        <Skeleton className="h-9 w-20" />
                       </div>
                     ))}
                   </div>
-                ) : allBlogs.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No hay artículos. Crea tu primer artículo en la pestaña "Crear Nuevo".
-                  </p>
+                ) : blogs.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No hay artículos.</p>
                 ) : (
                   <div className="space-y-4">
-                    {allBlogs.map((blog) => (
-                      <div
-                        key={blog.id}
-                        className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        {blog.main_image && (
-                          <img
-                            src={blog.main_image || "/placeholder.svg"}
-                            alt={blog.title}
-                            className="w-32 h-20 object-cover rounded"
-                          />
-                        )}
+                    {blogs.map((blog) => (
+                      <div key={blog.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/50">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-2 mb-1">
                             <h3 className="font-semibold text-lg truncate">{blog.title}</h3>
-                            <Badge variant={blog.status === "published" ? "default" : "secondary"} className="shrink-0">
-                              {blog.status === "published" ? "Publicado" : "Borrador"}
+                            <Badge variant={blog.draft ? "secondary" : "default"}>
+                              {blog.draft ? "Borrador" : "Publicado"}
                             </Badge>
                           </div>
-                          {blog.subtitle && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">{blog.subtitle}</p>
-                          )}
+                          <p className="text-sm text-muted-foreground line-clamp-2">{blog.description}</p>
                           <p className="text-xs text-muted-foreground mt-2">
-                            Creado: {new Date(blog.created_at).toLocaleDateString("es-ES")}
+                            Fecha: {new Date(blog.publishDate).toLocaleDateString("es-ES")}
                           </p>
                         </div>
                         <div className="flex gap-2 shrink-0">
@@ -780,12 +653,14 @@ export default function CrearBlogPage() {
         </Tabs>
       </div>
 
-      <AddMediaDialog open={imageDialogOpen} onOpenChange={setImageDialogOpen} onAdd={handleAddImage} type="image" />
-      <AddMediaDialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen} onAdd={handleAddVideo} type="video" />
       <DeleteBlogDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        blog={blogToDelete}
+        blog={
+          blogToDelete
+            ? { id: blogToDelete.id, title: blogToDelete.title, status: blogToDelete.draft ? "draft" : "published" }
+            : null
+        }
         onDelete={handleDelete}
       />
     </div>
