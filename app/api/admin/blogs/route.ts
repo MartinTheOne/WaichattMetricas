@@ -46,6 +46,19 @@ const requireAdmin = async () => {
   return Boolean(session && (session.user as any).rol === "admin")
 }
 
+// Dispara un rebuild de la landing (Vercel Deploy Hook) tras crear/editar/borrar
+// un blog, para que el sitio estático se regenere desde Mongo sin commits manuales.
+// Best-effort: el blog ya se guardó; si el hook falla sólo se loguea, no rompe la request.
+const triggerLandingRebuild = async () => {
+  const hook = process.env.VERCEL_DEPLOY_HOOK_URL
+  if (!hook) return
+  try {
+    await fetch(hook, { method: "POST" })
+  } catch (error) {
+    console.error("No se pudo disparar el rebuild de la landing:", error)
+  }
+}
+
 const clean = (value: unknown) => String(value ?? "").trim()
 
 // Solo guardamos la imagen si es una URL http(s) absoluta: es la portada y va como
@@ -154,6 +167,7 @@ export async function POST(request: Request) {
     const result = await blogs.insertOne({ ...normalized.blog, createdAt: now, updatedAt: now })
     const blog = await blogs.findOne({ _id: result.insertedId })
 
+    await triggerLandingRebuild()
     return NextResponse.json({ blog: blog ? toJson(blog) : null }, { status: 201 })
   } catch (error) {
     console.error("Error creating blog:", error)
@@ -182,6 +196,7 @@ export async function PUT(request: Request) {
     )
 
     const blog = await blogs.findOne({ _id: id })
+    await triggerLandingRebuild()
     return NextResponse.json({ blog: blog ? toJson(blog) : null })
   } catch (error) {
     console.error("Error updating blog:", error)
@@ -197,6 +212,7 @@ export async function DELETE(request: Request) {
     if (!id || !ObjectId.isValid(id)) return NextResponse.json({ error: "ID inválido" }, { status: 400 })
 
     await (await getBlogs()).deleteOne({ _id: new ObjectId(id) })
+    await triggerLandingRebuild()
     return NextResponse.json({ message: "Blog eliminado exitosamente" })
   } catch (error) {
     console.error("Error deleting blog:", error)
