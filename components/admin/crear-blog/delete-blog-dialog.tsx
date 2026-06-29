@@ -16,7 +16,7 @@ interface DeleteBlogDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   blog: {
-    id: number
+    id: number | string
     title: string
     status: string
   } | null
