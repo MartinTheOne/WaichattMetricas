@@ -11,6 +11,7 @@ type BlogInput = {
   updatedDate?: string
   tags?: string[]
   draft?: boolean
+  image?: string
   body?: string
   author?: {
     name?: string
@@ -46,6 +47,13 @@ const requireAdmin = async () => {
 }
 
 const clean = (value: unknown) => String(value ?? "").trim()
+
+// Solo guardamos la imagen si es una URL http(s) absoluta: es la portada y va como
+// og:image, donde una ruta relativa o un valor basura rompería el preview social.
+const cleanImageUrl = (value: unknown) => {
+  const url = clean(value)
+  return /^https?:\/\//i.test(url) ? url : ""
+}
 
 // Normaliza el slug al mismo formato que acepta el sync del blog estático
 // (^[a-z0-9]+(?:-[a-z0-9]+)*$). Sin esto, un slug con mayúsculas/espacios/acentos
@@ -91,6 +99,7 @@ const normalizeBlog = (input: BlogInput) => {
       ...(clean(input.updatedDate) ? { updatedDate: clean(input.updatedDate) } : {}),
       tags: (input.tags || []).map(clean).filter(Boolean),
       draft: Boolean(input.draft),
+      ...(cleanImageUrl(input.image) ? { image: cleanImageUrl(input.image) } : {}),
       body,
       ...(authorName
         ? {

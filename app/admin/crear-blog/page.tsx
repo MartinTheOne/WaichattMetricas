@@ -28,6 +28,7 @@ type BlogForm = {
   updatedDate: string
   tags: string
   draft: boolean
+  image: string
   body: string
   author: {
     name: string
@@ -58,6 +59,7 @@ const emptyForm = (): BlogForm => ({
   updatedDate: "",
   tags: "",
   draft: true,
+  image: "",
   body: "",
   author: { name: "", role: "", url: "", bio: "" },
   howTo: { name: "", steps: [] },
@@ -203,6 +205,7 @@ export default function CrearBlogPage() {
       updatedDate: blog.updatedDate?.slice(0, 10) || "",
       tags: (blog.tags || []).join(", "),
       draft: Boolean(blog.draft),
+      image: blog.image || "",
       body: blog.body || "",
       author: blog.author || { name: "", role: "", url: "", bio: "" },
       howTo: blog.howTo || { name: "", steps: [] },
@@ -345,6 +348,29 @@ export default function CrearBlogPage() {
                       <p className="text-sm text-muted-foreground">
                         Palabras clave separadas por coma. Al menos una para publicar.
                       </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="image">Imagen de portada (URL)</Label>
+                      <Input
+                        id="image"
+                        type="url"
+                        value={form.image}
+                        onChange={(e) => updateForm("image", e.target.value)}
+                        placeholder="https://..."
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Pegá el link de una imagen (https). Se muestra como portada del artículo y como imagen de
+                        preview al compartir en redes. Ideal 1200×630 px.
+                      </p>
+                      {/^https?:\/\//i.test(form.image) && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={form.image}
+                          alt="Vista previa de portada"
+                          className="mt-2 w-full max-w-md rounded-lg border aspect-[1200/630] object-cover"
+                        />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -537,6 +563,14 @@ export default function CrearBlogPage() {
                   <Badge variant={form.draft ? "secondary" : "default"}>{form.draft ? "Borrador" : "Publicado"}</Badge>
                   <h1 className="text-4xl font-bold mt-4 mb-4">{form.title || "Título del artículo"}</h1>
                   <p className="text-lg text-muted-foreground leading-relaxed">{form.description}</p>
+                  {/^https?:\/\//i.test(form.image) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={form.image}
+                      alt={form.title || "Portada"}
+                      className="mt-8 w-full rounded-xl border aspect-[1200/630] object-cover"
+                    />
+                  )}
                   <div className="mt-8 whitespace-pre-wrap font-sans leading-7 text-muted-foreground">
                     {form.body || "Contenido Markdown"}
                   </div>
